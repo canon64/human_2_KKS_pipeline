@@ -1,0 +1,45 @@
+__pycache__/
+*.pyc
+*.bak_*
+*.bak
+outputs/
+data/
+python/
+*.log
+config.json
+chrome_debug_data_*/
+venv/
+test_uc.py
+CODEBASE_STATE.md
+*.ps1
+*.lnk
+test2/
+test/
+test3/
+_release_clean/
+
+# ユーザーのプリセット・辞書データ（個人の変換辞書が入るので公開しない）
+config/active_presets.json
+config/transcription_presets.json
+config/dictionary_presets.json
+config/*_presets.json
+
+# ログ・作業ファイル
+_logs/
+setup_log.txt
+.playwright-mcp/
+screenshot/
+screenshots/
+/*.png
+/*.jpg
+
+# AI / エディタ作業用
+.claude/
+.codex/
+.cursor/
+AGENTS.md
+
+# git の作業ファイルを誤って add したもの
+FETCH_HEAD
+ORIG_HEAD
+MERGE_HEAD
