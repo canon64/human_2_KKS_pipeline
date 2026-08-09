@@ -36,6 +36,7 @@ from PyQt6.QtWidgets import (
     QStyledItemDelegate,
     QApplication,
     QCheckBox,
+    QButtonGroup,
     QComboBox,
     QDoubleSpinBox,
     QFileDialog,
@@ -49,6 +50,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QRadioButton,
     QScrollArea,
     QSlider,
     QSpinBox,
@@ -654,6 +656,49 @@ class MainWindow(QMainWindow):
 
         self._reload_devices()
 
+    def current_llm_backend(self) -> str:
+        """今選ばれているAIの識別子。未生成なら既定のGrokブラウザ扱い。"""
+        for radio, value in getattr(self, "_llm_backend_radios", []):
+            if radio.isChecked():
+                return value
+        return "grok_browser"
+
+    def set_llm_backend(self, value: str) -> None:
+        """設定の読み込みから呼ぶ。該当が無ければ何もしない。"""
+        for radio, candidate in getattr(self, "_llm_backend_radios", []):
+            if candidate == value:
+                radio.setChecked(True)
+                return
+
+    def _apply_llm_backend_visibility(self) -> None:
+        """選んだAIに関係のある行だけ残す。
+
+        Grokブラウザは接続先やAPIキーを持たない(Seleniumタブ側で繋ぐ)ので、
+        それらを出したままにすると「入れないと動かないのか」と迷わせる。
+        """
+        form = getattr(self, "_llm_form", None)
+        rows = getattr(self, "_llm_rows", None)
+        if form is None or not rows:
+            return
+
+        backend = self.current_llm_backend()
+
+        # 先頭の「使うAI」行は常に見せる。以降が _llm_rows と1対1で並ぶ。
+        for index, (_label, backends) in enumerate(rows, start=1):
+            visible = backends is None or backend in backends
+            try:
+                form.setRowVisible(index, visible)
+            except AttributeError:
+                # 古いQtには setRowVisible が無い。ラベルと中身を個別に隠す。
+                label_item = form.itemAt(index, QFormLayout.ItemRole.LabelRole)
+                field_item = form.itemAt(index, QFormLayout.ItemRole.FieldRole)
+                for item in (label_item, field_item):
+                    if item is None:
+                        continue
+                    widget = item.widget()
+                    if widget is not None:
+                        widget.setVisible(visible)
+
     def _build_pipeline_tab(self) -> None:
         inner = QWidget()
         inner.setMinimumWidth(900)
@@ -663,8 +708,22 @@ class MainWindow(QMainWindow):
         from PyQt6.QtCore import Qt
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.tabs.addTab(scroll, "パイプライン設定")
-        form = QFormLayout(inner)
-        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+
+        # 29項目を一枚のフォームに並べると、どこからどこまでが何の設定か分からない。
+        # 処理の流れ(場所→聞き取り→翻訳→AI→読み上げ→送信)ごとに箱で仕切る。
+        outer = QVBoxLayout(inner)
+        outer.setContentsMargins(8, 8, 8, 8)
+        outer.setSpacing(10)
+
+        def _section(title: str) -> QFormLayout:
+            box = QGroupBox(title)
+            layout = QFormLayout(box)
+            layout.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+            outer.addWidget(box)
+            return layout
+
+        self._pipeline_section = _section
+        form = _section("1. 場所と保存")
 
         self.kks_root_edit = QLineEdit()
         kks_btn = QPushButton("参照")
@@ -710,6 +769,8 @@ class MainWindow(QMainWindow):
         behavior_row.addStretch(1)
         behavior_w = QWidget(); behavior_w.setLayout(behavior_row)
         form.addRow("動作設定", behavior_w)
+
+        form = self._pipeline_section("2. 聞き取り（文字起こし）")
 
         _local_py = str(PROJECT_ROOT / "python" / "python.exe")
         self.faster_python_edit = QLineEdit(_local_py)
@@ -766,6 +827,8 @@ class MainWindow(QMainWindow):
 
         # ── あなたの入力（あなたが喋る側） ──────────────────────────
         input_group = QVBoxLayout()
+        form = self._pipeline_section("3. 翻訳")
+
         input_send_row = QHBoxLayout()
         self.translate_enabled_chk = QCheckBox("翻訳してGrokへ送る")
         self.translate_enabled_chk.setChecked(False)
@@ -810,16 +873,46 @@ class MainWindow(QMainWindow):
         reply_group_w = QWidget(); reply_group_w.setLayout(reply_group)
         form.addRow("女キャラの返事", reply_group_w)
 
+        form = self._pipeline_section("4. AI（返事を考える）")
+
+        # どのAIを使うかで、下に出す項目が変わる。全部同時に出すと
+        # 「今の自分にどれが要るのか」が読み取れないため、選択に応じて出し分ける。
+        # 3つは同時に使えない。ラジオにして、選べるのは常に1つだけにする。
+        self.llm_backend_group = QButtonGroup(self)
+        self.llm_backend_group.setExclusive(True)
+        backend_w = QWidget()
+        backend_row = QHBoxLayout(backend_w)
+        backend_row.setContentsMargins(0, 0, 0, 0)
+        self._llm_backend_radios: list[tuple[QRadioButton, str]] = []
+        for text, value in (
+            ("Grokブラウザ", "grok_browser"),
+            ("ローカルLLM(OpenAI互換)", "local_openai"),
+            ("RunPod(Open WebUI+Ollama)", "runpod_openwebui"),
+        ):
+            radio = QRadioButton(text)
+            self.llm_backend_group.addButton(radio)
+            backend_row.addWidget(radio)
+            self._llm_backend_radios.append((radio, value))
+        self._llm_backend_radios[0][0].setChecked(True)
+        backend_row.addStretch(1)
+        form.addRow("使うAI", backend_w)
+
+        # 行ごとに、どのbackendで見せるかを覚えておく。
+        self._llm_rows: list[tuple[str, set[str] | None]] = []
+        self._llm_form = form
+
+        def _row(label: str, widget, backends: set[str] | None = None) -> None:
+            form.addRow(label, widget)
+            self._llm_rows.append((label, backends))
+
+        self._llm_row = _row
+
         self.pipeline_python_edit = QLineEdit(_local_py)
         pp_btn = QPushButton("参照")
         pp_btn.clicked.connect(lambda: self._pick_file(self.pipeline_python_edit, "Grok/TTS Python"))
-        form.addRow("Grok/TTS Python", self._hrow(self.pipeline_python_edit, pp_btn))
+        self._llm_row("Grok/TTS Python", self._hrow(self.pipeline_python_edit, pp_btn))
 
         llm_row = QHBoxLayout()
-        self.llm_backend_combo = _NoWheelComboBox()
-        self.llm_backend_combo.addItem("Grokブラウザ", "grok_browser")
-        self.llm_backend_combo.addItem("ローカルLLM(OpenAI互換)", "local_openai")
-        self.llm_backend_combo.addItem("RunPod(Open WebUI+Ollama)", "runpod_openwebui")
         self.llm_base_url_edit = QLineEdit("http://127.0.0.1:1234/v1")
         self.llm_base_url_edit.setPlaceholderText(
             "LM Studio: http://127.0.0.1:1234/v1  /  RunPod: Pod IDのみ可"
@@ -841,7 +934,6 @@ class MainWindow(QMainWindow):
         )
         self.llm_new_chat_btn.setMaximumWidth(84)
         llm_row.addWidget(QLabel("backend"))
-        llm_row.addWidget(self.llm_backend_combo)
         llm_row.addWidget(QLabel("base"))
         llm_row.addWidget(self.llm_base_url_edit, 1)
         llm_row.addWidget(QLabel("model"))
@@ -868,9 +960,9 @@ class MainWindow(QMainWindow):
         chat_row.addWidget(self.llm_chat_refresh_btn)
         chat_row.addWidget(self.llm_new_chat_btn)
         chat_w = QWidget(); chat_w.setLayout(chat_row)
-        form.addRow("RunPod会話", chat_w)
+        self._llm_row("RunPod会話", chat_w, {"runpod_openwebui"})
         llm_w = QWidget(); llm_w.setLayout(llm_row)
-        form.addRow("LLM", llm_w)
+        self._llm_row("接続先", llm_w, {"local_openai", "runpod_openwebui"})
 
         llm_detail_row = QHBoxLayout()
         self.llm_api_key_edit = QLineEdit("lm-studio")
@@ -897,7 +989,7 @@ class MainWindow(QMainWindow):
         llm_detail_row.addWidget(QLabel("timeout"))
         llm_detail_row.addWidget(self.llm_timeout_spin)
         llm_detail_w = QWidget(); llm_detail_w.setLayout(llm_detail_row)
-        form.addRow("LLM詳細", llm_detail_w)
+        self._llm_row("生成の調整", llm_detail_w, {"local_openai", "runpod_openwebui"})
 
         self.llm_system_prompt_enabled_chk = QCheckBox("system promptを使う")
         self.llm_system_prompt_enabled_chk.setChecked(True)
@@ -915,7 +1007,7 @@ class MainWindow(QMainWindow):
         sys_prompt_col.addWidget(self.llm_system_prompt_enabled_chk)
         sys_prompt_col.addWidget(self.llm_system_prompt_edit)
         sys_prompt_w = QWidget(); sys_prompt_w.setLayout(sys_prompt_col)
-        form.addRow("LLM system", sys_prompt_w)
+        self._llm_row("LLM system", sys_prompt_w)
 
         self.llm_always_append_text_edit = QLineEdit()
         self.llm_always_append_text_edit.setPlaceholderText(
@@ -924,7 +1016,7 @@ class MainWindow(QMainWindow):
         self.llm_always_append_text_edit.setToolTip(
             "字幕へは追加せず、LLMまたはベクター検索へ送る本文だけに半角スペース区切りで追加します。"
         )
-        form.addRow("毎回追加ワード", self.llm_always_append_text_edit)
+        self._llm_row("毎回追加ワード", self.llm_always_append_text_edit)
 
         # ワード連動追記は独立タブ（_build_keyword_append_tab）へ。
 
@@ -937,17 +1029,20 @@ class MainWindow(QMainWindow):
             "画像生成のプロンプトには影響しません。"
         )
         self.strip_stage_directions_check.stateChanged.connect(self._on_any_setting_changed)
-        form.addRow("ト書き", self.strip_stage_directions_check)
+        self._llm_row("ト書き", self.strip_stage_directions_check)
+
+        for _radio, _value in self._llm_backend_radios:
+            _radio.toggled.connect(lambda _checked=False: self._apply_llm_backend_visibility())
+        self._apply_llm_backend_visibility()
+
+
+        form = self._pipeline_section("5. 読み上げ")
 
         self.sbv2_root_edit = QLineEdit()
         sbv2_btn = QPushButton("参照")
         sbv2_btn.clicked.connect(lambda: self._pick_dir(self.sbv2_root_edit, "SBV2フォルダ"))
         form.addRow("SBV2フォルダ", self._hrow(self.sbv2_root_edit, sbv2_btn))
 
-        self.video_metadata_edit = QLineEdit("")
-        meta_btn = QPushButton("参照")
-        meta_btn.clicked.connect(lambda: self._pick_file(self.video_metadata_edit, "動画メタデータJSON"))
-        form.addRow("動画メタデータJSON", self._hrow(self.video_metadata_edit, meta_btn))
 
         sbv2_server_row = QHBoxLayout()
         self.sbv2_mode_combo = _NoWheelComboBox()
@@ -1021,6 +1116,8 @@ class MainWindow(QMainWindow):
         form.addRow("送信設定", o)
 
         face_mode_row = QHBoxLayout()
+        form = self._pipeline_section("6. ゲームへ送る")
+
         self.face_mode_combo = _NoWheelComboBox()
         self.face_mode_combo.addItem("ゲームプリセット", "game_preset")
         self.face_mode_combo.addItem("FacePreset Name", "preset_name")
@@ -4340,8 +4437,9 @@ class MainWindow(QMainWindow):
         self.rtfw_host_edit.textChanged.connect(self._on_any_setting_changed)
         self.rtfw_port_spin.valueChanged.connect(self._on_any_setting_changed)
         self.pipeline_python_edit.textChanged.connect(self._on_any_setting_changed)
-        self.llm_backend_combo.currentTextChanged.connect(self._on_any_setting_changed)
-        self.llm_backend_combo.currentIndexChanged.connect(self._on_llm_backend_changed)
+        for _radio, _value in getattr(self, "_llm_backend_radios", []):
+            _radio.toggled.connect(self._on_any_setting_changed)
+            _radio.toggled.connect(lambda _c=False: self._on_llm_backend_changed())
         self.grok_history_enabled_chk.toggled.connect(self._on_any_setting_changed)
         self.grok_history_search_url_edit.textChanged.connect(self._on_any_setting_changed)
         self.grok_history_top_k_spin.valueChanged.connect(self._on_any_setting_changed)
@@ -4370,7 +4468,6 @@ class MainWindow(QMainWindow):
         self.llm_max_tokens_spin.valueChanged.connect(self._on_any_setting_changed)
         self.llm_timeout_spin.valueChanged.connect(self._on_any_setting_changed)
         self.sbv2_root_edit.textChanged.connect(self._on_any_setting_changed)
-        self.video_metadata_edit.textChanged.connect(self._on_any_setting_changed)
         self.sbv2_mode_combo.currentTextChanged.connect(self._on_any_setting_changed)
         self.sbv2_server_url_edit.textChanged.connect(self._on_any_setting_changed)
         self.sbv2_auto_start_chk.toggled.connect(self._on_any_setting_changed)
@@ -4654,8 +4751,7 @@ class MainWindow(QMainWindow):
 
             backend = normalize_backend(
                 str(
-                    self.llm_backend_combo.currentData()
-                    or self.llm_backend_combo.currentText()
+                    self.current_llm_backend()
                 )
             )
         except Exception:
@@ -4677,8 +4773,7 @@ class MainWindow(QMainWindow):
 
             backend = normalize_backend(
                 str(
-                    self.llm_backend_combo.currentData()
-                    or self.llm_backend_combo.currentText()
+                    self.current_llm_backend()
                 )
             )
         except Exception:
@@ -4752,7 +4847,7 @@ class MainWindow(QMainWindow):
                     kept[key] = value
             store[previous] = kept
 
-        raw = self.llm_backend_combo.currentData() or self.llm_backend_combo.currentText()
+        raw = self.current_llm_backend()
         try:
             backend = normalize_backend(str(raw))
         except ValueError:
@@ -4904,8 +4999,7 @@ class MainWindow(QMainWindow):
 
             backend = normalize_backend(
                 str(
-                    self.llm_backend_combo.currentData()
-                    or self.llm_backend_combo.currentText()
+                    self.current_llm_backend()
                 )
             )
         except Exception:

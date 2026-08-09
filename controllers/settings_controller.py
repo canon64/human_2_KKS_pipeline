@@ -276,9 +276,7 @@ def build_config(window, *, config_file: Path, default_source_mode: str) -> AppC
         rtfw_port=int(window.rtfw_port_spin.value()),
         pipeline_python=Path(window.pipeline_python_edit.text().strip()).expanduser().resolve(),
         llm_backend=_normalize_llm_backend(
-            window.llm_backend_combo.currentData()
-            if window.llm_backend_combo.currentData() is not None
-            else window.llm_backend_combo.currentText(),
+            window.current_llm_backend(),
             "grok_browser",
         ),
         grok_history_enabled=bool(window.grok_history_enabled_chk.isChecked()),
@@ -455,11 +453,6 @@ def build_config(window, *, config_file: Path, default_source_mode: str) -> AppC
         ),
         sbv2_server_url=window.sbv2_server_url_edit.text().strip(),
         sbv2_server_auto_start=window.sbv2_auto_start_chk.isChecked(),
-        video_metadata_path=(
-            Path(window.video_metadata_edit.text().strip()).expanduser().resolve()
-            if window.video_metadata_edit.text().strip()
-            else None
-        ),
         filter_phrases=filter_phrases,
         llm_keyword_appends=window.collect_llm_keyword_appends(),
         llm_keyword_appends_enabled=bool(
@@ -645,7 +638,6 @@ def save_config(
         "sbv2_mode": cfg.sbv2_mode,
         "sbv2_server_url": cfg.sbv2_server_url,
         "sbv2_server_auto_start": cfg.sbv2_server_auto_start,
-        "video_metadata_path": str(cfg.video_metadata_path) if cfg.video_metadata_path else "",
         "filter_phrases": cfg.filter_phrases,
         "llm_keyword_appends": cfg.llm_keyword_appends,
         "llm_keyword_appends_enabled": cfg.llm_keyword_appends_enabled,
@@ -721,8 +713,7 @@ def load_config(window, *, config_file: Path, default_source_mode: str) -> None:
         window.rtfw_port_spin.setValue(i("rtfw_port", 8766))
         window.pipeline_python_edit.setText(s("pipeline_python", window.pipeline_python_edit.text()))
         llm_backend = _normalize_llm_backend(data.get("llm_backend", "grok_browser"), "grok_browser")
-        llm_backend_index = max(0, window.llm_backend_combo.findData(llm_backend))
-        window.llm_backend_combo.setCurrentIndex(llm_backend_index)
+        window.set_llm_backend(llm_backend)
         window.grok_history_enabled_chk.setChecked(b("grok_history_enabled", True))
         window.grok_history_search_url_edit.setText(
             s("grok_history_search_url", "http://127.0.0.1:8877/search")
@@ -906,7 +897,6 @@ def load_config(window, *, config_file: Path, default_source_mode: str) -> None:
         window.sbv2_mode_combo.setCurrentIndex(sbv2_mode_index)
         window.sbv2_server_url_edit.setText(s("sbv2_server_url", window.sbv2_server_url_edit.text()))
         window.sbv2_auto_start_chk.setChecked(b("sbv2_server_auto_start", True))
-        window.video_metadata_edit.setText(s("video_metadata_path", window.video_metadata_edit.text()))
         window.chrome_port_spin.setValue(i("chrome_debug_port", 9222))
         window.chrome_headless_chk.setChecked(b("chrome_headless", False))
         if hasattr(window, "astral_grok_url_edit"):

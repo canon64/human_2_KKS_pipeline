@@ -93,11 +93,10 @@ class PipelineWorker(QObject):
         self._sd_control_server: Optional[ThreadingHTTPServer] = None
         self._sd_control_thread: Optional[threading.Thread] = None
         self._session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
-        # song_kana_map / video_metadata
+        # song_kana_map
         _data_dir = PROJECT_ROOT / "data"
         self._song_kana_map_path: Path = _data_dir / "song_kana_map.json"
         self._song_kana_map: list[dict] = self._load_json_safe(self._song_kana_map_path)
-        self._video_metadata: list[dict] = self._load_json_safe(self._cfg.video_metadata_path)
         self._song_kana_lock = threading.Lock()
         self._title_to_indices: dict[str, list[int]] = self._build_title_to_indices()
         self._sorted_titles: list[str] = sorted(self._title_to_indices.keys(), key=len, reverse=True)
@@ -142,23 +141,8 @@ class PipelineWorker(QObject):
             if t and t not in title_to_idx:
                 title_to_idx[t] = i
 
-        # カナはvideo_metadata.jsonから取得（song_kana_mapにはカナフィールドなし）
-        # tuple: (key_lower, kana_value, idx, kind, original_text)
-        rules = []
-        seen: set[str] = set()
-        for entry in self._video_metadata:
-            artist = entry.get("artist", "")
-            artist_kana = entry.get("artist_kana", "")
-            title = entry.get("title", "")
-            title_kana = entry.get("title_kana", "")
-            title_lower = title.lower()
-            idx = title_to_idx.get(title_lower, -1)
-            if artist and artist_kana and artist.lower() not in seen:
-                seen.add(artist.lower())
-                rules.append((artist.lower(), artist_kana, idx, "artist", artist))
-            if title and title_kana and title_lower not in seen:
-                seen.add(title_lower)
-                rules.append((title_lower, title_kana, idx, "title", title))
+        # 読み仮名の元データ(video_metadata.json)は廃止したため、規則は作らない。
+        rules: list = []
         # 長い文字列を優先してマッチ
         rules.sort(key=lambda r: len(r[0]), reverse=True)
         return rules
@@ -1840,16 +1824,8 @@ class PipelineWorker(QObject):
             self._transcribe_conv_rules = list(rules or [])
 
     def update_runtime_config(self, cfg: AppConfig) -> None:
-        prev_video_metadata = self._cfg.video_metadata_path
         self._cfg = cfg
         self.update_transcribe_conv(cfg.transcribe_conversion_dict)
-        if prev_video_metadata != cfg.video_metadata_path:
-            with self._song_kana_lock:
-                self._video_metadata = self._load_json_safe(cfg.video_metadata_path)
-                self._title_to_indices = self._build_title_to_indices()
-                self._sorted_titles = sorted(self._title_to_indices.keys(), key=len, reverse=True)
-                self._kana_rules = self._build_kana_rules()
-            self.log.emit(f"[live] video_metadata reloaded: {cfg.video_metadata_path or '(none)'}")
 
     def _apply_transcribe_conversion(self, text: str, mode: str = "grok") -> str:
         converted = text
@@ -2133,16 +2109,9 @@ class PipelineWorker(QObject):
 
         chosen_title = random.choice(titles)
 
-        # video_metadata.json から同タイトルの全ファイルを取得
-        candidates = [
-            e["file"] for e in self._video_metadata
-            if e.get("title", "").lower() == chosen_title.lower() and e.get("file", "")
-        ]
-        if not candidates:
-            self.log.emit(f"[video] タイトル '{chosen_title}' に一致する動画なし")
-            return
-
-        chosen_file = random.choice(candidates)
+        # 動画ファイル名の解決表(video_metadata.json)は廃止した。
+        # タイトルをそのままファイル名として渡す。
+        chosen_file = chosen_title
 
         def _send():
             if delay_sec and delay_sec > 0:

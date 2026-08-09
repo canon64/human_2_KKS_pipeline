@@ -302,9 +302,96 @@ def _build_update_section(window, layout) -> None:
     )
 
 
+def _ensure_ollama_ready(window) -> bool:
+    """取り込み前にOllamaとモデルを確認する。続行してよければ True。
+
+    埋め込みはOllamaとモデルが無いと必ず失敗する。失敗してから気づくと
+    エラー文が「Ollamaは起動していますか」となり、モデル不足だと分からない。
+    ここで先に切り分けて、必要なときだけポップアップを出す。
+    """
+    from PyQt6.QtWidgets import QMessageBox
+
+    try:
+        from services import ollama_setup
+    except Exception:
+        return True  # 判定できないなら止めない
+
+    try:
+        settings = _collect_settings_for_ollama(window)
+        state, message = ollama_setup.check(settings)
+    except Exception:
+        return True
+
+    if state == "no_ollama":
+        answer = QMessageBox.question(
+            window,
+            "Ollama が必要です",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer == QMessageBox.StandardButton.Yes:
+            import webbrowser
+
+            webbrowser.open(ollama_setup.DOWNLOAD_URL)
+        return False
+
+    if state == "no_model":
+        answer = QMessageBox.question(
+            window,
+            "モデルの取得",
+            message,
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            return False
+
+        window.grok_history_update_status_label.setText("モデル取得中...")
+        window.grok_history_update_log.clear()
+        window.grok_history_update_log.appendPlainText(
+            "モデルを取得しています。数GBあるため時間が掛かります。"
+        )
+        # 取得中は画面が固まるが、進捗はログに出す。
+        from PyQt6.QtWidgets import QApplication
+
+        def emit(line: str) -> None:
+            window.grok_history_update_log.appendPlainText(line)
+            QApplication.processEvents()
+
+        error = ollama_setup.pull_model(settings, emit)
+        if error:
+            QMessageBox.critical(window, "取得に失敗しました", error)
+            window.grok_history_update_status_label.setText("失敗: " + error)
+            return False
+
+    return True
+
+
+def _collect_settings_for_ollama(window) -> dict:
+    """Ollamaの判定に要る設定だけを画面から拾う。"""
+    endpoint = ""
+    exe = ""
+    try:
+        endpoint = window.grok_history_ollama_endpoint_edit.text().strip()
+    except Exception:
+        pass
+    try:
+        exe = window.grok_history_ollama_exe_edit.text().strip()
+    except Exception:
+        pass
+    return {
+        "grok_history_ollama_endpoint": endpoint,
+        "grok_history_ollama_exe": exe,
+    }
+
+
 def _start_grok_history_update(window) -> None:
     """取り込みを別スレッドで走らせる。埋め込みは分単位で掛かるためGUIを止めない。"""
     if getattr(window, "_grok_history_update_thread", None) is not None:
+        return
+
+    if not _ensure_ollama_ready(window):
         return
 
     from PyQt6.QtCore import QThread
