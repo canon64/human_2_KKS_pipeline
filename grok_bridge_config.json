@@ -1,10 +1,11 @@
 {
   "debug_port": 9223,
   "wait_after_send_seconds": 1.0,
-  "response_timeout_seconds": 60.0,
+  "response_timeout_seconds": 180.0,
   "response_poll_seconds": 0.2,
   "response_settle_rounds": 2,
   "wait_for_icon_change": true,
+  "stop_button_appear_timeout_seconds": 8.0,
   "history_search": {
     "url": "http://127.0.0.1:8877/search",
     "timeout_seconds": 30.0

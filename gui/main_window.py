@@ -46,6 +46,7 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMainWindow,
     QMenu,
+    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -329,6 +330,93 @@ class _NoWheelSpinBox(_NoWheelMixin, __import__('PyQt6.QtWidgets', fromlist=['QS
 class _NoWheelDoubleSpinBox(_NoWheelMixin, __import__('PyQt6.QtWidgets', fromlist=['QDoubleSpinBox']).QDoubleSpinBox): pass
 class _NoWheelComboBox(_NoWheelMixin, __import__('PyQt6.QtWidgets', fromlist=['QComboBox']).QComboBox): pass
 
+class _ModelComboBox(_NoWheelComboBox):
+    """モデル選択用のコンボ。
+
+    - 開いた瞬間に候補が空なら取りに行く（押さないと空のままという状態を作らない）
+    - モデル名は `hf.co/<作者>/<リポジトリ>:<量子化>` と長いので、
+      一覧側は省略せず中身に合わせて横に広げる。入力欄の幅には縛られない。
+    """
+
+    fetch_hook = None
+
+    @staticmethod
+    def model_display_label(model_id: str) -> str:
+        """`hf.co/作者/リポジトリ-GGUF:Q4_K_M` を判別に要る部分だけに縮める。
+
+        作者名や `hf.co/` `-GGUF` はどれも同じで判別の役に立たないため落とす。
+        例: hf.co/mradermacher/gemma-4-26B-roleplay-v2-merged-GGUF:Q4_K_M
+            -> gemma-4-26B-roleplay-v2-merged  [Q4_K_M]
+        """
+        raw = str(model_id or "").strip()
+        if not raw:
+            return ""
+        name, sep, quant = raw.partition(":")
+        name = name.rsplit("/", 1)[-1]  # hf.co/<作者>/ を落とす
+        for suffix in ("-GGUF", "-gguf", ".GGUF", ".gguf"):
+            if name.endswith(suffix):
+                name = name[: -len(suffix)]
+                break
+        return f"{name}  [{quant}]" if sep and quant else name
+
+    def current_model_id(self) -> str:
+        """表示名ではなく、実際に送信するモデルIDを返す。手打ちならその文字列。"""
+        text = self.currentText().strip()
+        # 「― 理由 ―」は案内用の飾りなのでモデルIDとして扱わない。
+        if text.startswith("―") and text.endswith("―"):
+            return ""
+        index = self.findText(text)
+        if index >= 0:
+            data = self.itemData(index)
+            if data:
+                return str(data)
+        return text
+
+    def set_model_id(self, value: object) -> None:
+        """モデルIDを指定して選択する。一覧に無ければ手打ち扱いでそのまま入れる。"""
+        target = str(value or "").strip()
+        for i in range(self.count()):
+            if str(self.itemData(i) or "") == target:
+                self.setCurrentIndex(i)
+                return
+        self.setCurrentText(target)
+
+    def _widen_popup(self) -> None:
+        view = self.view()
+        try:
+            view.setTextElideMode(Qt.TextElideMode.ElideNone)
+        except Exception:
+            pass
+        metrics = view.fontMetrics()
+        widest = 0
+        for i in range(self.count()):
+            widest = max(widest, metrics.horizontalAdvance(self.itemText(i)))
+        if widest <= 0:
+            return
+        # スクロールバーと余白の分を足す。画面外へはみ出さないよう上限を設ける。
+        wanted = widest + 60
+        screen = self.screen()
+        if screen is not None:
+            wanted = min(wanted, int(screen.availableGeometry().width() * 0.9))
+        view.setMinimumWidth(wanted)
+        container = view.parentWidget()
+        if container is not None:
+            container.setMinimumWidth(wanted)
+
+    def has_real_items(self) -> bool:
+        """案内文（IDを持たない飾り）以外の実項目があるか。"""
+        return any(str(self.itemData(i) or "") for i in range(self.count()))
+
+    def showPopup(self):
+        if not self.has_real_items() and callable(self.fetch_hook):
+            try:
+                self.fetch_hook()
+            except Exception:
+                pass
+        self._widen_popup()
+        super().showPopup()
+
+
 class _NoWheelPortSpinBox(_NoWheelSpinBox):
     def wheelEvent(self, event):
         event.ignore()
@@ -349,6 +437,9 @@ class _NoWheelAlwaysComboBox(_NoWheelComboBox):
 # ---------------------------------------------------------------------------
 # メインウィンドウ
 # ---------------------------------------------------------------------------
+
+ENV_DEFAULT_PATH = "J:" + chr(92) + "tools" + chr(92) + "api-scripts" + chr(92) + "runtime" + chr(92) + ".env"
+
 
 class MainWindow(QMainWindow):
     def __init__(self) -> None:
@@ -423,8 +514,10 @@ class MainWindow(QMainWindow):
         splitter.addWidget(self.tabs)
         self._build_recorder_tab()
         self._build_pipeline_tab()
+        self._build_keyword_append_tab()
         build_vector_response_tab(self)
         self._build_stable_diffusion_tab()
+        self._build_discord_tab()
         self._build_test_tab()
         self._build_selenium_tab()
         self._build_transcribe_conversion_tab()
@@ -726,16 +819,56 @@ class MainWindow(QMainWindow):
         self.llm_backend_combo = _NoWheelComboBox()
         self.llm_backend_combo.addItem("Grokブラウザ", "grok_browser")
         self.llm_backend_combo.addItem("ローカルLLM(OpenAI互換)", "local_openai")
+        self.llm_backend_combo.addItem("RunPod(Open WebUI+Ollama)", "runpod_openwebui")
         self.llm_base_url_edit = QLineEdit("http://127.0.0.1:1234/v1")
-        self.llm_base_url_edit.setPlaceholderText("LM Studio: http://127.0.0.1:1234/v1")
-        self.llm_model_edit = QLineEdit("")
-        self.llm_model_edit.setPlaceholderText("model id")
+        self.llm_base_url_edit.setPlaceholderText(
+            "LM Studio: http://127.0.0.1:1234/v1  /  RunPod: Pod IDのみ可"
+        )
+        # 手打ちも残したいので編集可能コンボにする。RunPod選択時は「取得」で実機から埋める。
+        self.llm_model_edit = _ModelComboBox()
+        self.llm_model_edit.fetch_hook = lambda: self._on_fetch_llm_models(silent=True)
+        self.llm_model_edit.setEditable(True)
+        self.llm_model_edit.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self.llm_model_edit.lineEdit().setPlaceholderText("model id")
+        self.llm_model_fetch_btn = QPushButton("取得")
+        self.llm_model_fetch_btn.setToolTip(
+            "RunPod(またはOpenAI互換サーバー)に入っているモデル一覧を取得して候補に入れる"
+        )
+        self.llm_model_fetch_btn.setMaximumWidth(56)
+        self.llm_new_chat_btn = QPushButton("新規会話")
+        self.llm_new_chat_btn.setToolTip(
+            "RunPod側に新しい会話スレッドを作り、以後はそこへ送る。文脈を切りたいときに押す"
+        )
+        self.llm_new_chat_btn.setMaximumWidth(84)
         llm_row.addWidget(QLabel("backend"))
         llm_row.addWidget(self.llm_backend_combo)
         llm_row.addWidget(QLabel("base"))
         llm_row.addWidget(self.llm_base_url_edit, 1)
         llm_row.addWidget(QLabel("model"))
         llm_row.addWidget(self.llm_model_edit, 1)
+        llm_row.addWidget(self.llm_model_fetch_btn)
+
+        # RunPod の会話スレッド選択。Grok のスレッドと同じく文脈を継続させるため。
+        chat_row = QHBoxLayout()
+        self.llm_chat_combo = _NoWheelComboBox()
+        self.llm_chat_combo.setToolTip("送信先の会話スレッド。選んだスレッドの続きとして送る")
+        self.llm_chat_refresh_btn = QPushButton("更新")
+        self.llm_chat_refresh_btn.setMaximumWidth(56)
+        self.llm_runpod_email_edit = QLineEdit("")
+        self.llm_runpod_email_edit.setPlaceholderText("admin@local.pod")
+        self.llm_runpod_password_edit = QLineEdit("")
+        self.llm_runpod_password_edit.setPlaceholderText("パスワード")
+        self.llm_runpod_password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        chat_row.addWidget(QLabel("mail"))
+        chat_row.addWidget(self.llm_runpod_email_edit, 1)
+        chat_row.addWidget(QLabel("pass"))
+        chat_row.addWidget(self.llm_runpod_password_edit, 1)
+        chat_row.addWidget(QLabel("会話"))
+        chat_row.addWidget(self.llm_chat_combo, 1)
+        chat_row.addWidget(self.llm_chat_refresh_btn)
+        chat_row.addWidget(self.llm_new_chat_btn)
+        chat_w = QWidget(); chat_w.setLayout(chat_row)
+        form.addRow("RunPod会話", chat_w)
         llm_w = QWidget(); llm_w.setLayout(llm_row)
         form.addRow("LLM", llm_w)
 
@@ -766,10 +899,23 @@ class MainWindow(QMainWindow):
         llm_detail_w = QWidget(); llm_detail_w.setLayout(llm_detail_row)
         form.addRow("LLM詳細", llm_detail_w)
 
+        self.llm_system_prompt_enabled_chk = QCheckBox("system promptを使う")
+        self.llm_system_prompt_enabled_chk.setChecked(True)
+        self.llm_system_prompt_enabled_chk.setToolTip(
+            "外すと下の文面を残したままLLMへ送りません。"
+        )
         self.llm_system_prompt_edit = QPlainTextEdit()
         self.llm_system_prompt_edit.setPlaceholderText("ローカルLLM用system prompt（Grokブラウザ時は未使用）")
         self.llm_system_prompt_edit.setMaximumHeight(70)
-        form.addRow("LLM system", self.llm_system_prompt_edit)
+        self.llm_system_prompt_enabled_chk.toggled.connect(
+            self.llm_system_prompt_edit.setEnabled
+        )
+        sys_prompt_col = QVBoxLayout()
+        sys_prompt_col.setContentsMargins(0, 0, 0, 0)
+        sys_prompt_col.addWidget(self.llm_system_prompt_enabled_chk)
+        sys_prompt_col.addWidget(self.llm_system_prompt_edit)
+        sys_prompt_w = QWidget(); sys_prompt_w.setLayout(sys_prompt_col)
+        form.addRow("LLM system", sys_prompt_w)
 
         self.llm_always_append_text_edit = QLineEdit()
         self.llm_always_append_text_edit.setPlaceholderText(
@@ -779,6 +925,19 @@ class MainWindow(QMainWindow):
             "字幕へは追加せず、LLMまたはベクター検索へ送る本文だけに半角スペース区切りで追加します。"
         )
         form.addRow("毎回追加ワード", self.llm_always_append_text_edit)
+
+        # ワード連動追記は独立タブ（_build_keyword_append_tab）へ。
+
+        # 丸括弧の中は台詞ではなくト書き（動作説明）なので、既定では読み上げない。
+        self.strip_stage_directions_check = QCheckBox("()（）** の中は読み上げない（ト書き除去）")
+        self.strip_stage_directions_check.setChecked(True)
+        self.strip_stage_directions_check.setToolTip(
+            "丸括弧やアスタリスクで囲まれた動作説明を、読み上げと字幕から外します。\n"
+            "外すとキャラが「The AI smiles」のような説明文まで喋ります。\n"
+            "画像生成のプロンプトには影響しません。"
+        )
+        self.strip_stage_directions_check.stateChanged.connect(self._on_any_setting_changed)
+        form.addRow("ト書き", self.strip_stage_directions_check)
 
         self.sbv2_root_edit = QLineEdit()
         sbv2_btn = QPushButton("参照")
@@ -943,6 +1102,270 @@ class MainWindow(QMainWindow):
         ext_row.addWidget(QLabel("dedupe")); ext_row.addWidget(self.external_text_dedupe_spin)
         ext = QWidget(); ext.setLayout(ext_row)
         form.addRow("外部テキスト受信", ext)
+
+    def _build_discord_tab(self) -> None:
+        """
+        Discord ブリッジの設定。
+
+        ブリッジ本体は別プロセス(discord_voice_bridge)で、設定は
+        bridge_config.json に持つ。ここはその読み書きと起動停止を担う。
+        パイプライン側は /ask で問い合わせを受けるだけで、Discord は知らない。
+        """
+        inner = QWidget()
+        inner.setMinimumWidth(900)
+        scroll = QScrollArea()
+        scroll.setWidget(inner)
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.tabs.addTab(scroll, "Discord")
+        form = QFormLayout(inner)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+
+        # --- 接続 ---
+        self.discord_token_env_edit = QLineEdit("DISCORD_BOT_TOKEN")
+        form.addRow("トークンの環境変数", self.discord_token_env_edit)
+
+        self.discord_env_file_edit = QLineEdit(ENV_DEFAULT_PATH)
+        form.addRow(".env の場所", self.discord_env_file_edit)
+
+        # --- チャンネル ---
+        ch_row = QHBoxLayout()
+        self.discord_listen_channel_edit = QLineEdit()
+        self.discord_listen_channel_edit.setPlaceholderText("受信するテキストチャンネルID")
+        self.discord_reply_channel_edit = QLineEdit()
+        self.discord_reply_channel_edit.setPlaceholderText("返信先(空なら受信と同じ)")
+        ch_row.addWidget(QLabel("受信")); ch_row.addWidget(self.discord_listen_channel_edit, 2)
+        ch_row.addWidget(QLabel("返信")); ch_row.addWidget(self.discord_reply_channel_edit, 2)
+        ch_w = QWidget(); ch_w.setLayout(ch_row)
+        form.addRow("テキストチャンネル", ch_w)
+
+        self.discord_guild_edit = QLineEdit()
+        self.discord_guild_edit.setPlaceholderText("許可するサーバーID(カンマ区切り)。空なら制限なし")
+        form.addRow("許可サーバー", self.discord_guild_edit)
+
+        self.discord_list_channels_btn = QPushButton("チャンネル一覧を取得")
+        self.discord_list_channels_btn.clicked.connect(self._discord_list_channels)
+        form.addRow("", self.discord_list_channels_btn)
+
+        self.discord_channels_view = QPlainTextEdit()
+        self.discord_channels_view.setReadOnly(True)
+        self.discord_channels_view.setMaximumHeight(160)
+        self.discord_channels_view.setPlaceholderText("ここに一覧が出る。IDを上の欄へ貼る")
+        form.addRow("一覧", self.discord_channels_view)
+
+        # --- 返信の形 ---
+        rep_row = QHBoxLayout()
+        self.discord_prefix_edit = QLineEdit()
+        self.discord_prefix_edit.setPlaceholderText("空なら全部拾う")
+        self.discord_msg_limit_spin = _NoWheelSpinBox()
+        self.discord_msg_limit_spin.setRange(300, 2000); self.discord_msg_limit_spin.setValue(1900)
+        self.discord_max_images_spin = _NoWheelSpinBox()
+        self.discord_max_images_spin.setRange(0, 10); self.discord_max_images_spin.setValue(4)
+        rep_row.addWidget(QLabel("接頭辞")); rep_row.addWidget(self.discord_prefix_edit, 2)
+        rep_row.addWidget(QLabel("分割文字数")); rep_row.addWidget(self.discord_msg_limit_spin)
+        rep_row.addWidget(QLabel("画像枚数")); rep_row.addWidget(self.discord_max_images_spin)
+        rep_w = QWidget(); rep_w.setLayout(rep_row)
+        form.addRow("返信", rep_w)
+
+        self.discord_timeout_spin = _NoWheelSpinBox()
+        self.discord_timeout_spin.setRange(10, 600); self.discord_timeout_spin.setValue(180)
+        self.discord_timeout_spin.setSuffix(" 秒")
+        form.addRow("応答待ち", self.discord_timeout_spin)
+
+        # --- 起動 ---
+        run_row = QHBoxLayout()
+        self.discord_save_btn = QPushButton("設定を保存")
+        self.discord_save_btn.clicked.connect(self._discord_save_config)
+        self.discord_start_btn = QPushButton("ブリッジ起動")
+        self.discord_start_btn.clicked.connect(self._discord_start)
+        self.discord_stop_btn = QPushButton("停止")
+        self.discord_stop_btn.clicked.connect(self._discord_stop)
+        run_row.addWidget(self.discord_save_btn)
+        run_row.addWidget(self.discord_start_btn)
+        run_row.addWidget(self.discord_stop_btn)
+        run_w = QWidget(); run_w.setLayout(run_row)
+        form.addRow("操作", run_w)
+
+        self.discord_status_label = QLabel("停止中")
+        form.addRow("状態", self.discord_status_label)
+
+        note = QLabel(
+            "ブリッジは別プロセスで動く。Discord のメッセージを /ask へ投げ、"
+            "Grok の返事と SD 画像を受け取って返す。 "
+            "通話の音声受信は Discord の E2E 暗号化(DAVE)により現在できない。"
+        )
+        note.setWordWrap(True)
+        form.addRow("", note)
+
+        self._discord_load_config()
+
+    # ================= Discord ブリッジ =================
+    # ブリッジ本体は discord_bridge パッケージ。別プロセスで起動する。
+    # 同じプロセスで動かすと discord のイベントループが Qt と噛み合わないため。
+
+    def _discord_python(self) -> str:
+        """
+        ブリッジを起動する python。
+
+        同梱の python を優先する。ブリッジは discord_bridge として同梱した部品で、
+        py-cord もそちらへ入れてあるため。設定欄の python には py-cord が無く、
+        には py-cord が無く、そのまま使うと起動できない。
+        """
+        import sys
+        from pathlib import Path
+
+        bundled = Path(__file__).resolve().parents[1] / "python" / "python.exe"
+        if bundled.exists():
+            return str(bundled)
+        try:
+            value = self.pipeline_python_edit.text().strip()
+        except Exception:
+            value = ""
+        return value or sys.executable
+
+    def _discord_config_path(self):
+        from pathlib import Path
+        return Path(__file__).resolve().parents[1] / "discord_bridge_config.json"
+
+    def _discord_load_config(self) -> None:
+        import json
+        p = self._discord_config_path()
+        if not p.exists():
+            return
+        try:
+            raw = json.loads(p.read_text(encoding="utf-8"))
+        except Exception as exc:
+            self._append_log(f"[discord] 設定が読めない: {exc}")
+            return
+
+        cap = raw.get("capture") or {}
+        rep = raw.get("reply") or {}
+        pipe = raw.get("pipeline") or {}
+
+        self.discord_token_env_edit.setText(str(raw.get("token_env", "DISCORD_BOT_TOKEN")))
+        self.discord_env_file_edit.setText(str(raw.get("env_file", "")))
+        listen = int(pipe.get("listen_channel_id", 0) or 0) or int(rep.get("text_channel_id", 0) or 0)
+        self.discord_listen_channel_edit.setText(str(listen or ""))
+        self.discord_reply_channel_edit.setText(str(int(rep.get("text_channel_id", 0) or 0) or ""))
+        self.discord_prefix_edit.setText(str(pipe.get("command_prefix", "")))
+        self.discord_msg_limit_spin.setValue(int(rep.get("message_limit", 1900) or 1900))
+        self.discord_max_images_spin.setValue(int(rep.get("max_images", 4) or 4))
+        self.discord_timeout_spin.setValue(int(float(pipe.get("timeout_sec", 180) or 180)))
+        guilds = pipe.get("allowed_guild_ids") or []
+        self.discord_guild_edit.setText(",".join(str(g) for g in guilds))
+
+    def _discord_save_config(self) -> None:
+        import json
+        p = self._discord_config_path()
+        try:
+            raw = json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
+        except Exception:
+            raw = {}
+
+        raw.setdefault("capture", {})
+        raw.setdefault("wav", {})
+        raw.setdefault("reply", {})
+        raw.setdefault("pipeline", {})
+
+        raw["token_env"] = self.discord_token_env_edit.text().strip() or "DISCORD_BOT_TOKEN"
+        raw["env_file"] = self.discord_env_file_edit.text().strip()
+
+        def _int(text: str) -> int:
+            try:
+                return int(str(text).strip() or 0)
+            except Exception:
+                return 0
+
+        listen = _int(self.discord_listen_channel_edit.text())
+        reply = _int(self.discord_reply_channel_edit.text()) or listen
+
+        raw["pipeline"]["listen_channel_id"] = listen
+        raw["pipeline"]["command_prefix"] = self.discord_prefix_edit.text().strip()
+        raw["pipeline"]["timeout_sec"] = float(self.discord_timeout_spin.value())
+        raw["pipeline"].setdefault("host", "127.0.0.1")
+        # 受信サーバーのポートに合わせる。ずれると /ask に届かない。
+        raw["pipeline"]["port"] = int(self.external_text_port_spin.value())
+        raw["pipeline"].setdefault("token", "")
+        raw["pipeline"].setdefault("ignore_bots", True)
+        guild_text = self.discord_guild_edit.text().strip()
+        guild_ids = []
+        for part in guild_text.replace("、", ",").split(","):
+            part = part.strip()
+            if part.isdigit():
+                guild_ids.append(int(part))
+        raw["pipeline"]["allowed_guild_ids"] = guild_ids
+
+        raw["reply"]["text_channel_id"] = reply
+        raw["reply"]["message_limit"] = int(self.discord_msg_limit_spin.value())
+        raw["reply"]["max_images"] = int(self.discord_max_images_spin.value())
+        raw["reply"].setdefault("play_voice_in_call", True)
+
+        try:
+            p.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
+            self._append_log(f"[discord] 設定を保存した: {p.name}")
+            self.discord_status_label.setText("設定を保存した")
+        except Exception as exc:
+            self._append_log(f"[discord] 保存に失敗: {exc}")
+
+    def _discord_list_channels(self) -> None:
+        """別プロセスで一覧を取る。Qt のループを塞がない。"""
+        import subprocess
+        from pathlib import Path
+
+        self._discord_save_config()
+        root = Path(__file__).resolve().parents[1]
+        script = root / "discord_bridge" / "list_channels.py"
+        self.discord_channels_view.setPlainText("取得中…")
+        try:
+            proc = subprocess.run(
+                [self._discord_python(), str(script)],
+                capture_output=True, text=True, timeout=90, cwd=str(root),
+                encoding="utf-8", errors="replace",
+            )
+            out = (proc.stdout or "") + (proc.stderr or "")
+            self.discord_channels_view.setPlainText(out.strip() or "(何も返らなかった)")
+        except Exception as exc:
+            self.discord_channels_view.setPlainText(f"取得に失敗: {exc}")
+
+    def _discord_start(self) -> None:
+        import subprocess
+        from pathlib import Path
+
+        if getattr(self, "_discord_proc", None) is not None and self._discord_proc.poll() is None:
+            self.discord_status_label.setText("既に動いている")
+            return
+
+        self._discord_save_config()
+        root = Path(__file__).resolve().parents[1]
+        script = root / "discord_bridge" / "run_bridge.py"
+        try:
+            self._discord_proc = subprocess.Popen(
+                [self._discord_python(), "-u", str(script)],
+                cwd=str(root),
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            )
+            self.discord_status_label.setText(f"起動した (pid={self._discord_proc.pid})")
+            self._append_log(f"[discord] ブリッジ起動 pid={self._discord_proc.pid}")
+        except Exception as exc:
+            self.discord_status_label.setText(f"起動に失敗: {exc}")
+            self._append_log(f"[discord] 起動に失敗: {exc}")
+
+    def _discord_stop(self) -> None:
+        proc = getattr(self, "_discord_proc", None)
+        if proc is None or proc.poll() is not None:
+            self.discord_status_label.setText("停止中")
+            return
+        try:
+            proc.terminate()
+            proc.wait(timeout=5)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+        self._discord_proc = None
+        self.discord_status_label.setText("停止した")
+        self._append_log("[discord] ブリッジ停止")
 
     def _build_stable_diffusion_tab(self) -> None:
         inner = QWidget()
@@ -3281,6 +3704,62 @@ class MainWindow(QMainWindow):
         finally:
             self._astral_prev_url = None
 
+    def _build_keyword_append_tab(self) -> None:
+        # 特定ワードに反応して添える文言。体位一覧・曲リストなど長いものは
+        # txtのパスを書けば中身を読む（相対パスはこのフォルダ起点）。
+        tab = QWidget()
+        scroll = QScrollArea(); scroll.setWidget(tab); scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.tabs.addTab(scroll, "ワード連動追記")
+        layout = QVBoxLayout(tab)
+
+        self.llm_keyword_appends_enabled_chk = QCheckBox("ワード連動追記を使う")
+        self.llm_keyword_appends_enabled_chk.setChecked(True)
+        self.llm_keyword_appends_enabled_chk.setToolTip(
+            "外すとルールを残したまま、ワード連動の追記を全部止めます。"
+        )
+        layout.addWidget(self.llm_keyword_appends_enabled_chk)
+
+        self.llm_keyword_table = QTableWidget(0, 4)
+        self.llm_keyword_table.setHorizontalHeaderLabels(
+            ["有効", "ワード", "種別", "送る文言 / ファイルのパス"]
+        )
+        kw_header = self.llm_keyword_table.horizontalHeader()
+        kw_header.setStretchLastSection(True)
+        self.llm_keyword_table.setColumnWidth(0, 50)
+        self.llm_keyword_table.setColumnWidth(1, 140)
+        self.llm_keyword_table.setColumnWidth(2, 90)
+        self.llm_keyword_table.setSelectionBehavior(
+            QTableWidget.SelectionBehavior.SelectRows
+        )
+        self.llm_keyword_table.setMinimumHeight(240)
+        self.llm_keyword_table.setToolTip(
+            "発話にワードが含まれていたら、その文言をLLMへの入力に添えます。"
+            "読み上げには出ません。文言の代わりに .txt のパスを書くと中身を送ります。"
+        )
+        layout.addWidget(self.llm_keyword_table, 1)
+
+        kw_add_btn = QPushButton("追加")
+        kw_del_btn = QPushButton("削除")
+        kw_file_btn = QPushButton("ファイル選択")
+        kw_add_btn.clicked.connect(self._llm_keyword_add_row)
+        kw_del_btn.clicked.connect(self._llm_keyword_remove_row)
+        kw_file_btn.clicked.connect(self._llm_keyword_pick_file)
+        kw_btns = QHBoxLayout()
+        for b in (kw_add_btn, kw_del_btn, kw_file_btn):
+            kw_btns.addWidget(b)
+        kw_btns.addStretch(1)
+        self._llm_keyword_btn_w = QWidget(); self._llm_keyword_btn_w.setLayout(kw_btns)
+        layout.addWidget(self._llm_keyword_btn_w)
+
+        self.llm_keyword_appends_enabled_chk.toggled.connect(
+            self.set_llm_keyword_widgets_enabled
+        )
+
+    def set_llm_keyword_widgets_enabled(self, enabled: bool) -> None:
+        self.llm_keyword_table.setEnabled(bool(enabled))
+        self._llm_keyword_btn_w.setEnabled(bool(enabled))
+
     def _build_filter_tab(self) -> None:
         tab = QWidget()
         scroll = QScrollArea(); scroll.setWidget(tab); scroll.setWidgetResizable(True)
@@ -3862,6 +4341,7 @@ class MainWindow(QMainWindow):
         self.rtfw_port_spin.valueChanged.connect(self._on_any_setting_changed)
         self.pipeline_python_edit.textChanged.connect(self._on_any_setting_changed)
         self.llm_backend_combo.currentTextChanged.connect(self._on_any_setting_changed)
+        self.llm_backend_combo.currentIndexChanged.connect(self._on_llm_backend_changed)
         self.grok_history_enabled_chk.toggled.connect(self._on_any_setting_changed)
         self.grok_history_search_url_edit.textChanged.connect(self._on_any_setting_changed)
         self.grok_history_top_k_spin.valueChanged.connect(self._on_any_setting_changed)
@@ -3874,10 +4354,18 @@ class MainWindow(QMainWindow):
         self.grok_history_response_preferred_terms_edit.textChanged.connect(self._on_any_setting_changed)
         self.tts_line_break_target_spin.valueChanged.connect(self._on_any_setting_changed)
         self.llm_base_url_edit.textChanged.connect(self._on_any_setting_changed)
-        self.llm_model_edit.textChanged.connect(self._on_any_setting_changed)
+        self.llm_model_edit.currentTextChanged.connect(self._on_any_setting_changed)
+        self.llm_model_fetch_btn.clicked.connect(self._on_fetch_llm_models_clicked)
+        self.llm_chat_refresh_btn.clicked.connect(lambda: self._refresh_llm_chats())
+        self.llm_new_chat_btn.clicked.connect(self._on_new_llm_chat)
+        self.llm_chat_combo.currentIndexChanged.connect(self._on_llm_chat_selected)
         self.llm_api_key_edit.textChanged.connect(self._on_any_setting_changed)
+        self.llm_runpod_email_edit.textChanged.connect(self._on_any_setting_changed)
+        self.llm_runpod_password_edit.textChanged.connect(self._on_any_setting_changed)
+        self.llm_system_prompt_enabled_chk.toggled.connect(self._on_any_setting_changed)
         self.llm_system_prompt_edit.textChanged.connect(self._on_any_setting_changed)
         self.llm_always_append_text_edit.textChanged.connect(self._on_any_setting_changed)
+        self.llm_keyword_appends_enabled_chk.toggled.connect(self._on_any_setting_changed)
         self.llm_temperature_spin.valueChanged.connect(self._on_any_setting_changed)
         self.llm_max_tokens_spin.valueChanged.connect(self._on_any_setting_changed)
         self.llm_timeout_spin.valueChanged.connect(self._on_any_setting_changed)
@@ -3981,6 +4469,408 @@ class MainWindow(QMainWindow):
         mode = (cfg.source_mode or DEFAULT_SOURCE_MODE).strip().lower()
         return mode in ("mic", "both")
 
+    def _refresh_llm_chats(self, select_id: str = "") -> None:
+        """Pod に残っている会話スレッドを一覧に読み込む。過去の会話も選べるようにする。"""
+        from grok_bridge.llm_providers import current_runpod_chat_id, list_runpod_chats
+
+        base_url = self.llm_base_url_edit.text().strip()
+        api_key = self.runpod_credential()
+        combo = self.llm_chat_combo
+        if not base_url:
+            combo.clear()
+            combo.addItem("― base を入れてください ―", "")
+            return
+        try:
+            chats = list_runpod_chats(base_url, api_key, timeout_seconds=30.0)
+        except Exception as exc:
+            combo.clear()
+            combo.addItem(f"― {self._model_fetch_hint(exc)} ―", "")
+            self._append_log(f"[llm-chat] 会話一覧の取得に失敗: {exc}")
+            return
+
+        target = select_id or current_runpod_chat_id(base_url)
+        combo.blockSignals(True)
+        combo.clear()
+        for chat_id, title in chats:
+            combo.addItem(f"{title}  ({chat_id[:8]})", chat_id)
+        if not chats:
+            combo.addItem("― 会話がありません。新規会話を押してください ―", "")
+        combo.blockSignals(False)
+        index = combo.findData(target) if target else -1
+        if index >= 0:
+            combo.setCurrentIndex(index)
+        elif chats:
+            combo.setCurrentIndex(0)
+            self._on_llm_chat_selected()
+        self._append_log(f"[llm-chat] 会話 {len(chats)} 件")
+
+    def _on_llm_chat_selected(self) -> None:
+        """選んだ会話を、以後の送信先として控える。"""
+        from grok_bridge.llm_providers import select_runpod_chat
+
+        chat_id = str(self.llm_chat_combo.currentData() or "")
+        base_url = self.llm_base_url_edit.text().strip()
+        if not chat_id or not base_url:
+            return
+        try:
+            select_runpod_chat(base_url, chat_id)
+            self._append_log(f"[llm-chat] 送信先を切替: {chat_id}")
+        except Exception as exc:
+            self._append_log(f"[llm-chat] 切替に失敗: {exc}")
+
+    def _on_new_llm_chat(self) -> None:
+        """新しい会話スレッドを作り、そこへ送るようにする。文脈を切りたいとき用。"""
+        from grok_bridge.llm_providers import create_runpod_chat
+
+        base_url = self.llm_base_url_edit.text().strip()
+        api_key = self.runpod_credential()
+        model = self.llm_model_edit.current_model_id()
+        if not base_url:
+            QMessageBox.warning(self, "新規会話", "base に Pod ID を入れてください。")
+            return
+        try:
+            chat_id = create_runpod_chat(base_url, api_key, model, timeout_seconds=30.0)
+        except Exception as exc:
+            QMessageBox.warning(self, "新規会話の作成に失敗", str(exc)[:600])
+            self._append_log(f"[llm-chat] 新規会話の作成に失敗: {exc}")
+            return
+        self._append_log(f"[llm-chat] 新規会話: {chat_id}")
+        self._refresh_llm_chats(select_id=chat_id)
+
+    # ---- ワード連動追記 ----
+
+    _KEYWORD_TYPE_LABELS = (("部分一致", "partial"), ("完全一致", "exact"), ("正規表現", "regex"))
+
+    def _llm_keyword_add_row(self, rule: dict | None = None) -> None:
+        table = self.llm_keyword_table
+        row = table.rowCount()
+        table.insertRow(row)
+
+        enabled_item = QTableWidgetItem()
+        enabled_item.setFlags(
+            Qt.ItemFlag.ItemIsUserCheckable | Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+        )
+        on = bool((rule or {}).get("enabled", True))
+        enabled_item.setCheckState(
+            Qt.CheckState.Checked if on else Qt.CheckState.Unchecked
+        )
+        table.setItem(row, 0, enabled_item)
+        table.setItem(row, 1, QTableWidgetItem(str((rule or {}).get("pattern", ""))))
+
+        type_combo = _NoWheelComboBox()
+        for label, value in self._KEYWORD_TYPE_LABELS:
+            type_combo.addItem(label, value)
+        wanted = str((rule or {}).get("type", "partial"))
+        index = type_combo.findData(wanted)
+        type_combo.setCurrentIndex(index if index >= 0 else 0)
+        type_combo.currentIndexChanged.connect(self._on_any_setting_changed)
+        table.setCellWidget(row, 2, type_combo)
+
+        table.setItem(row, 3, QTableWidgetItem(str((rule or {}).get("append", ""))))
+        self._on_any_setting_changed()
+
+    def _llm_keyword_remove_row(self) -> None:
+        table = self.llm_keyword_table
+        rows = sorted({i.row() for i in table.selectedIndexes()}, reverse=True)
+        if not rows and table.rowCount():
+            rows = [table.rowCount() - 1]
+        for row in rows:
+            table.removeRow(row)
+        self._on_any_setting_changed()
+
+    def _llm_keyword_pick_file(self) -> None:
+        """選択中の行の「送る文言」欄に txt のパスを入れる。相対パスにして持ち運べるようにする。"""
+        table = self.llm_keyword_table
+        rows = sorted({i.row() for i in table.selectedIndexes()})
+        if not rows:
+            QMessageBox.information(self, "txt選択", "行を選んでから押してください。")
+            return
+        path, _ = QFileDialog.getOpenFileName(
+            self, "送る文言のファイルを選択", "", "一覧ファイル (*.txt *.json *.md *.csv);;すべて (*.*)"
+        )
+        if not path:
+            return
+        try:
+            base = Path(__file__).resolve().parent.parent
+            relative = os.path.relpath(path, base)
+            if not relative.startswith(".."):
+                path = relative.replace("\\", "/")
+        except Exception:
+            pass
+        table.setItem(rows[0], 3, QTableWidgetItem(path))
+        self._on_any_setting_changed()
+
+    def collect_llm_keyword_appends(self) -> list[dict]:
+        table = self.llm_keyword_table
+        rules: list[dict] = []
+        for row in range(table.rowCount()):
+            enabled_item = table.item(row, 0)
+            pattern_item = table.item(row, 1)
+            append_item = table.item(row, 3)
+            type_widget = table.cellWidget(row, 2)
+            pattern = (pattern_item.text() if pattern_item else "").strip()
+            append = (append_item.text() if append_item else "").strip()
+            if not pattern or not append:
+                continue
+            rules.append(
+                {
+                    "enabled": bool(
+                        enabled_item and enabled_item.checkState() == Qt.CheckState.Checked
+                    ),
+                    "pattern": pattern,
+                    "type": str(
+                        type_widget.currentData() if type_widget is not None else "partial"
+                    ),
+                    "append": append,
+                }
+            )
+        return rules
+
+    def load_llm_keyword_appends(self, rules: list) -> None:
+        self.llm_keyword_table.setRowCount(0)
+        for rule in rules or []:
+            if isinstance(rule, dict):
+                self._llm_keyword_add_row(rule)
+
+    def runpod_credential(self) -> str:
+        """RunPod認証に渡す値。mail/pass が入っていればそれを組み立てる。
+
+        両方空のときだけ、従来の key 欄（`email:password` 直書き）に落とす。
+        """
+        email = self.llm_runpod_email_edit.text().strip()
+        password = self.llm_runpod_password_edit.text().strip()
+        if email and password:
+            return f"{email}:{password}"
+        return self.llm_api_key_edit.text().strip()
+
+    def current_llm_api_key(self) -> str:
+        """保存用のkey。空なら覚えている値を返す（空で上書きして消さない）。"""
+        value = self.llm_api_key_edit.text().strip()
+        if value:
+            return value
+        store = getattr(self, "_llm_model_by_backend", {}) or {}
+        try:
+            from grok_bridge.llm_providers import normalize_backend
+
+            backend = normalize_backend(
+                str(
+                    self.llm_backend_combo.currentData()
+                    or self.llm_backend_combo.currentText()
+                )
+            )
+        except Exception:
+            backend = ""
+        saved = store.get(backend) or {}
+        return "" if isinstance(saved, str) else str(saved.get("key") or "")
+
+    def current_llm_model(self) -> str:
+        """保存用のモデルID。案内文が出ているだけの状態では、覚えている値を返す。
+
+        案内文を実値と誤認して空で上書き保存すると、設定が消える。
+        """
+        value = self.llm_model_edit.current_model_id()
+        if value:
+            return value
+        store = getattr(self, "_llm_model_by_backend", {}) or {}
+        try:
+            from grok_bridge.llm_providers import normalize_backend
+
+            backend = normalize_backend(
+                str(
+                    self.llm_backend_combo.currentData()
+                    or self.llm_backend_combo.currentText()
+                )
+            )
+        except Exception:
+            backend = ""
+        saved = store.get(backend) or {}
+        if isinstance(saved, str):
+            return saved
+        return str(saved.get("model") or "")
+
+    def _show_model_placeholder(self, reason: str, keep_text: str | None = None) -> None:
+        """一覧を空にせず、理由を1件だけ出す。空欄で黙って壊れて見えるのを防ぐ。
+
+        keep_text に文字列を渡すとその値を入力欄に残す。None なら案内文を表示する。
+        """
+        combo = self.llm_model_edit
+        combo.blockSignals(True)
+        combo.clear()
+        combo.addItem(f"― {reason} ―", "")
+        model = combo.model()
+        item = model.item(0) if hasattr(model, "item") else None
+        if item is not None:
+            item.setEnabled(False)
+        combo.setCurrentIndex(0)
+        if keep_text:
+            combo.setCurrentText(keep_text)
+        combo.blockSignals(False)
+
+    @staticmethod
+    def _model_fetch_hint(exc: Exception) -> str:
+        """失敗内容から、次に何をすればいいかが分かる一言にする。"""
+        message = str(exc)
+        if "HTTP 400" in message or "incorrect" in message:
+            return "Podのアカウントが消えています(再起動後は作り直しが必要)"
+        if "HTTP 401" in message or "HTTP 403" in message:
+            return "認証に失敗しました(key を確認)"
+        if "connection failed" in message or "停止している" in message or "HTTP 404" in message:
+            return "Podが停止しているか Pod ID が古いです"
+        return f"取得失敗: {message[:60]}"
+
+    def _on_llm_backend_changed(self) -> None:
+        """backend に応じて model 欄の中身と使用可否を切り替える。
+
+        Grok はモデル指定という概念が無いので触らせない。RunPod は実機の一覧、
+        ローカルは手打ち。backend ごとに直前の選択を覚えて往復できるようにする。
+        """
+        from grok_bridge.llm_providers import normalize_backend
+
+        combo = self.llm_model_edit
+        store = getattr(self, "_llm_model_by_backend", None)
+        if store is None:
+            store = {}
+            self._llm_model_by_backend = store
+
+        # backend ごとに base/key/model を別々に覚える。Grok や ローカルへ寄り道しても
+        # RunPod に戻れば Pod ID も資格情報もそのまま復元される。
+        previous = getattr(self, "_llm_backend_prev", "")
+        if previous:
+            # 空で上書きしない。案内文表示中や入力途中の一瞬を拾って
+            # 覚えていた値を消してしまう事故を防ぐ。
+            kept = store.get(previous) or {}
+            if isinstance(kept, str):
+                kept = {"model": kept}
+            for key, value in (
+                ("model", combo.current_model_id()),
+                ("base", self.llm_base_url_edit.text().strip()),
+                ("key", self.llm_api_key_edit.text().strip()),
+                ("mail", self.llm_runpod_email_edit.text().strip()),
+                ("pass", self.llm_runpod_password_edit.text().strip()),
+            ):
+                if value:
+                    kept[key] = value
+            store[previous] = kept
+
+        raw = self.llm_backend_combo.currentData() or self.llm_backend_combo.currentText()
+        try:
+            backend = normalize_backend(str(raw))
+        except ValueError:
+            backend = "grok_browser"
+        self._llm_backend_prev = backend
+
+        combo.blockSignals(True)
+        combo.clear()
+        combo.blockSignals(False)
+
+        # この backend で前に使っていた base/key を戻す。
+        # 覚えが無い場合は現在値を残す（初回切替で入力済みの値を消さないため）。
+        saved = store.get(backend) or {}
+        if isinstance(saved, str):  # 旧形式（モデル名だけ）との互換
+            saved = {"model": saved}
+        for widget, key in (
+            (self.llm_base_url_edit, "base"),
+            (self.llm_api_key_edit, "key"),
+            (self.llm_runpod_email_edit, "mail"),
+            (self.llm_runpod_password_edit, "pass"),
+        ):
+            value = str(saved.get(key) or "")
+            if value:
+                widget.blockSignals(True)
+                widget.setText(value)
+                widget.blockSignals(False)
+
+        is_runpod = backend == "runpod_openwebui"
+        for widget in (
+            self.llm_chat_combo,
+            self.llm_chat_refresh_btn,
+            self.llm_new_chat_btn,
+            self.llm_runpod_email_edit,
+            self.llm_runpod_password_edit,
+        ):
+            widget.setEnabled(is_runpod)
+
+        if backend == "grok_browser":
+            combo.setEnabled(False)
+            self.llm_model_fetch_btn.setEnabled(False)
+            self._show_model_placeholder("Grokではモデル指定を使いません")
+            return
+
+        combo.setEnabled(True)
+        self.llm_model_fetch_btn.setEnabled(is_runpod)
+        remembered = str(saved.get("model") or "")
+        if backend == "runpod_openwebui":
+            # 開けば取りに行くので、ここでは通信しない（backend切替のたびに待たされないため）
+            self._show_model_placeholder("開くと一覧を取得します", keep_text=remembered)
+        else:
+            self._show_model_placeholder("model id を入力してください", keep_text=remembered)
+
+    def _on_fetch_llm_models_clicked(self) -> None:
+        """「取得」ボタン。取り直して、成功したらそのまま一覧を開く。"""
+        if self._on_fetch_llm_models(silent=False):
+            self.llm_model_edit.showPopup()
+
+    def _on_fetch_llm_models(self, silent: bool = False) -> bool:
+        """base/key の内容でサーバーに問い合わせ、model欄の候補を実機の一覧で置き換える。
+
+        silent=True はドロップダウンを開いた際の自動取得。失敗してもダイアログを出さず、
+        手打ちの邪魔をしない（ログには残す）。
+        """
+        from grok_bridge.llm_providers import list_runpod_models, normalize_backend
+
+        def _notify_warn(title: str, body: str) -> None:
+            self._append_log(f"[llm-model] {title}: {body}")
+            if not silent:
+                QMessageBox.warning(self, title, body[:600])
+
+        def _notify_info(title: str, body: str) -> None:
+            self._append_log(f"[llm-model] {title}: {body}")
+            if not silent:
+                QMessageBox.information(self, title, body[:600])
+
+        # backend が Grok でも取得自体は許す。Grok と RunPod を行き来する際、
+        # 切り替えるたびに一覧が空になるのは使い勝手が悪いため。
+        base_url = self.llm_base_url_edit.text().strip()
+        api_key = self.runpod_credential()
+        if not base_url:
+            self._show_model_placeholder("base に Pod ID を入れてください")
+            _notify_warn("モデル取得", "base に Pod ID かURLを入力してください。")
+            return False
+
+        current = self.llm_model_edit.current_model_id()
+        self.llm_model_fetch_btn.setEnabled(False)
+        QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+        try:
+            names = list_runpod_models(base_url, api_key, timeout_seconds=30.0)
+        except Exception as exc:  # サーバー不通・認証失敗は想定内なので握って通知する
+            self._show_model_placeholder(self._model_fetch_hint(exc))
+            _notify_warn("モデル取得に失敗", str(exc))
+            return False
+        finally:
+            QApplication.restoreOverrideCursor()
+            self.llm_model_fetch_btn.setEnabled(True)
+
+        if not names:
+            self._show_model_placeholder("Podにモデルが1つも入っていません")
+            _notify_info("モデル取得", "モデルが1つも入っていません。")
+            return False
+
+        self.llm_model_edit.blockSignals(True)
+        self.llm_model_edit.clear()
+        for name in names:
+            # 見せるのは判別に要る部分だけ。実際に送るIDは裏に持たせる。
+            self.llm_model_edit.addItem(
+                self.llm_model_edit.model_display_label(name), name
+            )
+            self.llm_model_edit.setItemData(
+                self.llm_model_edit.count() - 1, name, Qt.ItemDataRole.ToolTipRole
+            )
+        self.llm_model_edit.blockSignals(False)
+        # 直前に選んでいたものが一覧にあれば維持し、無ければ先頭にする。
+        self.llm_model_edit.set_model_id(current if current in names else names[0])
+        self._append_log(f"[llm-model] 候補 {len(names)} 件を取得しました")
+        return True
+
     @staticmethod
     def _llm_requires_chrome(cfg: AppConfig) -> bool:
         if str(cfg.llm_backend or "grok_browser").strip().lower() != "grok_browser":
@@ -4004,6 +4894,32 @@ class MainWindow(QMainWindow):
 
     def _load_config(self) -> None:
         _load_config_impl(self, config_file=CONFIG_FILE, default_source_mode=DEFAULT_SOURCE_MODE)
+        # 読み込んだ backend に合わせて model 欄の状態を整える。
+        # 保存済みのモデルIDは上書きしないよう、覚え書きに入れてから切り替える。
+        saved_model = self.llm_model_edit.current_model_id()
+        if not hasattr(self, "_llm_model_by_backend"):
+            self._llm_model_by_backend = {}
+        try:
+            from grok_bridge.llm_providers import normalize_backend
+
+            backend = normalize_backend(
+                str(
+                    self.llm_backend_combo.currentData()
+                    or self.llm_backend_combo.currentText()
+                )
+            )
+        except Exception:
+            backend = "grok_browser"
+        if saved_model:
+            self._llm_model_by_backend[backend] = {
+                "model": saved_model,
+                "base": self.llm_base_url_edit.text().strip(),
+                "key": self.llm_api_key_edit.text().strip(),
+                "mail": self.llm_runpod_email_edit.text().strip(),
+                "pass": self.llm_runpod_password_edit.text().strip(),
+            }
+        self._llm_backend_prev = ""  # 直前値の保存で空を書き込まないようにする
+        self._on_llm_backend_changed()
 
     # ---- モデルプリセット ----
 

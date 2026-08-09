@@ -54,6 +54,10 @@ class BridgeConfig:
     response_poll_seconds: float = 0.2
     response_settle_rounds: int = 2
     wait_for_icon_change: bool = True
+    # 送信後、停止ボタン(応答中の印)が現れるまで待つ秒数。
+    # 思考モードだと出現が遅れることがあり、ここで取り逃すと
+    # 「テキスト変化を直接見る」経路に落ちて思考中の文字を拾ってしまう。
+    stop_button_appear_timeout_seconds: float = 8.0
     history_search_url: str = "http://127.0.0.1:8877/search"
     history_search_timeout_seconds: float = 30.0
     selectors: SelectorConfig = field(default_factory=SelectorConfig)
@@ -86,6 +90,7 @@ def _default_config_dict() -> dict[str, Any]:
         "response_poll_seconds": cfg.response_poll_seconds,
         "response_settle_rounds": cfg.response_settle_rounds,
         "wait_for_icon_change": cfg.wait_for_icon_change,
+        "stop_button_appear_timeout_seconds": cfg.stop_button_appear_timeout_seconds,
         "history_search": {
             "url": cfg.history_search_url,
             "timeout_seconds": cfg.history_search_timeout_seconds,
@@ -147,6 +152,9 @@ def load_or_create_config(config_path: str) -> BridgeConfig:
         response_poll_seconds=float(merged["response_poll_seconds"]),
         response_settle_rounds=max(1, int(merged["response_settle_rounds"])),
         wait_for_icon_change=bool(merged["wait_for_icon_change"]),
+        stop_button_appear_timeout_seconds=max(
+            0.5, float(merged.get("stop_button_appear_timeout_seconds", 8.0))
+        ),
         history_search_url=str(history_search["url"]),
         history_search_timeout_seconds=max(1.0, float(history_search["timeout_seconds"])),
         selectors=SelectorConfig(

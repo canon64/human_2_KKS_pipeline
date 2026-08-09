@@ -23,6 +23,7 @@ from .llm_providers import (
     compose_llm_input,
     generate_llm_response,
     normalize_backend,
+    strip_stage_directions,
 )
 from .logging_utils import setup_logger
 from core.log_safety import sanitize_log_text, summarize_sd_prompt_result
@@ -681,7 +682,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--text", default="", help="Text to send to the selected LLM.")
     parser.add_argument("--response-text", default="", help="Use this as LLM response directly (skip LLM).")
     parser.add_argument("--max-response-chars", type=int, default=3000, help="Maximum LLM response characters to process. Set 0 to disable limit.")
-    parser.add_argument("--llm-backend", default="grok_browser", help="LLM backend: grok_browser or local_openai.")
+    parser.add_argument("--llm-backend", default="grok_browser", help="LLM backend: grok_browser, local_openai, or runpod_openwebui.")
     parser.add_argument(
         "--grok-history",
         action=argparse.BooleanOptionalAction,
@@ -739,9 +740,23 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default="",
         help="Newline-separated terms used to prioritize assistant responses.",
     )
+    parser.add_argument(
+        "--grok-history-date-from",
+        default="",
+        help="Only use history on/after this date (YYYY-MM-DD). Empty means no limit.",
+    )
+    parser.add_argument(
+        "--grok-history-date-to",
+        default="",
+        help="Only use history on/before this date (YYYY-MM-DD). Empty means no limit.",
+    )
     parser.add_argument("--llm-base-url", default="http://127.0.0.1:1234/v1", help="OpenAI-compatible local LLM base URL.")
     parser.add_argument("--llm-model", default="", help="OpenAI-compatible local LLM model id.")
     parser.add_argument("--llm-api-key", default="lm-studio", help="API key for local OpenAI-compatible server.")
+    parser.add_argument("--llm-runpod-email", default="", help="RunPod Open WebUI login email.")
+    parser.add_argument("--llm-runpod-password", default="", help="RunPod Open WebUI login password.")
+    parser.add_argument("--llm-keyword-appends-file", default="", help="JSON file of keyword-triggered append rules.")
+    parser.add_argument("--strip-stage-directions", action=argparse.BooleanOptionalAction, default=True, help="Drop parenthesized stage directions from spoken text.")
     parser.add_argument("--llm-system-prompt", default="", help="System prompt for local OpenAI-compatible server.")
     parser.add_argument(
         "--llm-always-append-text",
@@ -1299,7 +1314,20 @@ def main() -> int:
 
         if not args.response_text.strip():
             original_text_len = len(args.text)
-            args.text = compose_llm_input(args.text, args.llm_always_append_text)
+            # ワード連動の追記ルール。文言が長くなるため引数ではなくファイルで受け取る。
+            keyword_rules = []
+            rules_path = str(getattr(args, "llm_keyword_appends_file", "") or "").strip()
+            if rules_path:
+                try:
+                    with open(rules_path, "r", encoding="utf-8") as handle:
+                        loaded = json.load(handle)
+                    if isinstance(loaded, list):
+                        keyword_rules = [r for r in loaded if isinstance(r, dict)]
+                except Exception as exc:
+                    logger.warning("keyword_appends_load_failed path=%s err=%s", rules_path, exc)
+            args.text = compose_llm_input(
+                args.text, args.llm_always_append_text, keyword_rules
+            )
             append_text_len = len(str(args.llm_always_append_text or "").strip())
             if append_text_len:
                 logger.info(
@@ -1342,9 +1370,17 @@ def main() -> int:
                 grok_history_response_preferred_terms=(
                     args.grok_history_response_preferred_terms
                 ),
+                grok_history_date_from=args.grok_history_date_from,
+                grok_history_date_to=args.grok_history_date_to,
                 base_url=args.llm_base_url,
                 model=args.llm_model,
-                api_key=args.llm_api_key,
+                # RunPod は mail/pass を優先。無ければ従来の key をそのまま使う。
+                api_key=(
+                    f"{str(args.llm_runpod_email).strip()}:{str(args.llm_runpod_password).strip()}"
+                    if str(getattr(args, "llm_runpod_email", "")).strip()
+                    and str(getattr(args, "llm_runpod_password", "")).strip()
+                    else args.llm_api_key
+                ),
                 system_prompt=args.llm_system_prompt,
                 temperature=float(args.llm_temperature),
                 max_tokens=int(args.llm_max_tokens),
@@ -1421,6 +1457,19 @@ def main() -> int:
             begin_tag=getattr(args, "sd_prompt_begin_tag", "[SD_PROMPT_BEGIN]"),
             end_tag=getattr(args, "sd_prompt_end_tag", "[SD_PROMPT_END]"),
         )
+        # 丸括弧の中はト書き（動作の説明）で台詞ではない。読み上げると
+        # キャラが自分の動作を棒読みするので落とす。
+        # 画像用プロンプトの切り出し後に行う。あちらは (単語:1.2) の形で
+        # 丸括弧を強調に使うため、先に消すと壊れる。
+        before_stage_dir = len(response_raw_for_tts)
+        if getattr(args, "strip_stage_directions", True):
+            response_raw_for_tts = strip_stage_directions(response_raw_for_tts)
+        if len(response_raw_for_tts) != before_stage_dir:
+            logger.info(
+                "stage_directions_stripped before=%d after=%d",
+                before_stage_dir,
+                len(response_raw_for_tts),
+            )
         response, response_raw_len, response_capped_len, response_truncated = _limit_response_text(
             response_raw_for_tts,
             max_chars=args.max_response_chars,

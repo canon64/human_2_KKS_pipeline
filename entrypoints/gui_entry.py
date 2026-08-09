@@ -19,10 +19,23 @@ def run_gui(
         print("[info] Already running.")
         return 0
 
-    app = QApplication(sys.argv if argv is None else argv)
-    window = window_factory()
-    window.show()
-    return app.exec()
+    # Grok履歴ベクター検索API(8877)をGUIと同じ寿命で動かす。
+    # 起動できなくてもGUI自体は動かす(ベクター返答が使えないだけ)。
+    from services import grok_history_server
+
+    reason = grok_history_server.start()
+    if reason:
+        print(f"[warn] grok history server not started: {reason}")
+    else:
+        print("[info] grok history server ready (127.0.0.1:8877)")
+
+    try:
+        app = QApplication(sys.argv if argv is None else argv)
+        window = window_factory()
+        window.show()
+        return app.exec()
+    finally:
+        grok_history_server.stop()
 
 
 def run_gui_default(argv: Optional[list[str]] = None) -> int:

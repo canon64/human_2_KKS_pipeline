@@ -4,9 +4,23 @@ import json
 from pathlib import Path
 from typing import Optional
 
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import QDate, Qt
 
 from config.models import AppConfig
+
+
+def _apply_history_date(checkbox, date_edit, value: str) -> None:
+    """保存値('YYYY-MM-DD' または空)をチェックボックス＋日付欄へ復元する。
+
+    空文字は「期間制限なし」の意味なので、チェックを外して欄を無効化する。
+    """
+    token = str(value or "").strip()
+    parsed = QDate.fromString(token, "yyyy-MM-dd") if token else QDate()
+    enabled = bool(token) and parsed.isValid()
+    checkbox.setChecked(enabled)
+    if enabled:
+        date_edit.setDate(parsed)
+    date_edit.setEnabled(enabled)
 
 DEFAULT_PIPE_NAME = "kks_voice_face_events"
 LEGACY_DIAGNOSTIC_PIPE_NAMES = {"kks_voice_face_events_diag_0423"}
@@ -122,7 +136,9 @@ def _normalize_llm_backend(value: object, default: str = "grok_browser") -> str:
         return "grok_browser"
     if token in ("local", "local_llm", "openai_compatible", "lmstudio", "lm_studio", "ollama", "ollama_openai"):
         return "local_openai"
-    if token in ("grok_browser", "local_openai"):
+    if token in ("runpod", "run_pod", "openwebui", "open_webui"):
+        return "runpod_openwebui"
+    if token in ("grok_browser", "local_openai", "runpod_openwebui"):
         return token
     return default
 
@@ -292,12 +308,40 @@ def build_config(window, *, config_file: Path, default_source_mode: str) -> AppC
         grok_history_response_preferred_terms=(
             window.grok_history_response_preferred_terms_edit.toPlainText().strip()
         ),
+        grok_history_date_from=(
+            window.grok_history_date_from_edit.date().toString("yyyy-MM-dd")
+            if window.grok_history_date_from_chk.isChecked()
+            else ""
+        ),
+        grok_history_date_to=(
+            window.grok_history_date_to_edit.date().toString("yyyy-MM-dd")
+            if window.grok_history_date_to_chk.isChecked()
+            else ""
+        ),
+        grok_history_autostart=bool(window.grok_history_autostart_chk.isChecked()),
+        grok_history_api_port=int(window.grok_history_api_port_spin.value()),
+        grok_history_ollama_autostart=bool(
+            window.grok_history_ollama_autostart_chk.isChecked()
+        ),
+        grok_history_ollama_exe=window.grok_history_ollama_exe_edit.text().strip(),
+        grok_history_ollama_endpoint=(
+            window.grok_history_ollama_endpoint_edit.text().strip()
+            or "http://127.0.0.1:11434"
+        ),
+        grok_history_ollama_model=(
+            window.grok_history_ollama_model_edit.text().strip() or "bge-m3:latest"
+        ),
         tts_line_break_target_chars=max(
             1, int(window.tts_line_break_target_spin.value())
         ),
         llm_base_url=window.llm_base_url_edit.text().strip() or "http://127.0.0.1:1234/v1",
-        llm_model=window.llm_model_edit.text().strip(),
-        llm_api_key=window.llm_api_key_edit.text().strip(),
+        llm_model=window.current_llm_model(),
+        llm_api_key=window.current_llm_api_key(),
+        llm_runpod_email=window.llm_runpod_email_edit.text().strip(),
+        llm_runpod_password=window.llm_runpod_password_edit.text().strip(),
+        llm_system_prompt_enabled=bool(
+            window.llm_system_prompt_enabled_chk.isChecked()
+        ),
         llm_system_prompt=window.llm_system_prompt_edit.toPlainText().strip(),
         llm_always_append_text=window.llm_always_append_text_edit.text().strip(),
         llm_temperature=float(window.llm_temperature_spin.value()),
@@ -417,6 +461,11 @@ def build_config(window, *, config_file: Path, default_source_mode: str) -> AppC
             else None
         ),
         filter_phrases=filter_phrases,
+        llm_keyword_appends=window.collect_llm_keyword_appends(),
+        llm_keyword_appends_enabled=bool(
+            window.llm_keyword_appends_enabled_chk.isChecked()
+        ),
+        strip_stage_directions_enabled=window.strip_stage_directions_check.isChecked(),
         transcribe_conversion_dict=transcribe_conversion_dict,
         conversion_dict=conversion_dict,
         sd_prompt_rewrite_rules=sd_prompt_rewrite_rules,
@@ -476,10 +525,21 @@ def save_config(
         "grok_history_required_match_mode": cfg.grok_history_required_match_mode,
         "grok_history_response_required_terms": cfg.grok_history_response_required_terms,
         "grok_history_response_preferred_terms": cfg.grok_history_response_preferred_terms,
+        "grok_history_date_from": cfg.grok_history_date_from,
+        "grok_history_date_to": cfg.grok_history_date_to,
+        "grok_history_autostart": cfg.grok_history_autostart,
+        "grok_history_api_port": cfg.grok_history_api_port,
+        "grok_history_ollama_autostart": cfg.grok_history_ollama_autostart,
+        "grok_history_ollama_exe": cfg.grok_history_ollama_exe,
+        "grok_history_ollama_endpoint": cfg.grok_history_ollama_endpoint,
+        "grok_history_ollama_model": cfg.grok_history_ollama_model,
         "tts_line_break_target_chars": cfg.tts_line_break_target_chars,
         "llm_base_url": cfg.llm_base_url,
         "llm_model": cfg.llm_model,
         "llm_api_key": cfg.llm_api_key,
+        "llm_runpod_email": cfg.llm_runpod_email,
+        "llm_runpod_password": cfg.llm_runpod_password,
+        "llm_system_prompt_enabled": cfg.llm_system_prompt_enabled,
         "llm_system_prompt": cfg.llm_system_prompt,
         "llm_always_append_text": cfg.llm_always_append_text,
         "llm_temperature": cfg.llm_temperature,
@@ -587,6 +647,9 @@ def save_config(
         "sbv2_server_auto_start": cfg.sbv2_server_auto_start,
         "video_metadata_path": str(cfg.video_metadata_path) if cfg.video_metadata_path else "",
         "filter_phrases": cfg.filter_phrases,
+        "llm_keyword_appends": cfg.llm_keyword_appends,
+        "llm_keyword_appends_enabled": cfg.llm_keyword_appends_enabled,
+        "strip_stage_directions_enabled": cfg.strip_stage_directions_enabled,
         "transcribe_conversion_dict": cfg.transcribe_conversion_dict,
         "conversion_dict": cfg.conversion_dict,
         "sd_prompt_rewrite_rules": cfg.sd_prompt_rewrite_rules,
@@ -686,12 +749,42 @@ def load_config(window, *, config_file: Path, default_source_mode: str) -> None:
         window.grok_history_response_preferred_terms_edit.setPlainText(
             s("grok_history_response_preferred_terms", "")
         )
+        _apply_history_date(
+            window.grok_history_date_from_chk,
+            window.grok_history_date_from_edit,
+            s("grok_history_date_from", ""),
+        )
+        _apply_history_date(
+            window.grok_history_date_to_chk,
+            window.grok_history_date_to_edit,
+            s("grok_history_date_to", ""),
+        )
+        window.grok_history_autostart_chk.setChecked(b("grok_history_autostart", True))
+        window.grok_history_api_port_spin.setValue(i("grok_history_api_port", 8877))
+        window.grok_history_ollama_autostart_chk.setChecked(
+            b("grok_history_ollama_autostart", True)
+        )
+        window.grok_history_ollama_exe_edit.setText(s("grok_history_ollama_exe", ""))
+        window.grok_history_ollama_endpoint_edit.setText(
+            s("grok_history_ollama_endpoint", "http://127.0.0.1:11434")
+        )
+        window.grok_history_ollama_model_edit.setText(
+            s("grok_history_ollama_model", "bge-m3:latest")
+        )
         window.tts_line_break_target_spin.setValue(
             i("tts_line_break_target_chars", 80)
         )
         window.llm_base_url_edit.setText(s("llm_base_url", window.llm_base_url_edit.text()))
-        window.llm_model_edit.setText(s("llm_model", window.llm_model_edit.text()))
+        window.llm_model_edit.set_model_id(
+            s("llm_model", window.llm_model_edit.current_model_id())
+        )
         window.llm_api_key_edit.setText(s("llm_api_key", window.llm_api_key_edit.text()))
+        window.llm_runpod_email_edit.setText(s("llm_runpod_email", window.llm_runpod_email_edit.text()))
+        window.llm_runpod_password_edit.setText(s("llm_runpod_password", window.llm_runpod_password_edit.text()))
+        window.llm_system_prompt_enabled_chk.setChecked(b("llm_system_prompt_enabled", True))
+        window.llm_system_prompt_edit.setEnabled(
+            window.llm_system_prompt_enabled_chk.isChecked()
+        )
         window.llm_system_prompt_edit.setPlainText(s("llm_system_prompt", window.llm_system_prompt_edit.toPlainText()))
         window.llm_always_append_text_edit.setText(s("llm_always_append_text", ""))
         window.llm_temperature_spin.setValue(f("llm_temperature", window.llm_temperature_spin.value()))
@@ -824,6 +917,16 @@ def load_config(window, *, config_file: Path, default_source_mode: str) -> None:
                 if window.chrome_profile_combo.itemData(idx) == saved_profile:
                     window.chrome_profile_combo.setCurrentIndex(idx)
                     break
+        window.load_llm_keyword_appends(data.get("llm_keyword_appends", []))
+        window.llm_keyword_appends_enabled_chk.setChecked(
+            _as_bool(data.get("llm_keyword_appends_enabled", True), True)
+        )
+        window.set_llm_keyword_widgets_enabled(
+            window.llm_keyword_appends_enabled_chk.isChecked()
+        )
+        window.strip_stage_directions_check.setChecked(
+            _as_bool(data.get("strip_stage_directions_enabled", True), True)
+        )
         phrases = data.get("filter_phrases", [])
         if phrases:
             window._filter_order_seq = 0

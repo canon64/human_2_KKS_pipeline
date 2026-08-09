@@ -1,5 +1,6 @@
 ﻿from __future__ import annotations
 
+import base64
 import json
 import queue
 import random
@@ -8,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 import threading
+import uuid
 import time
 import traceback
 import urllib.error
@@ -432,6 +434,151 @@ class PipelineWorker(QObject):
         self.log.emit(f"[external] accepted source={src} text={normalized[:80]}")
         return True, "", int(HTTPStatus.OK)
 
+    # ── 音声のAI送信の可否 ────────────────────────────────
+    # ゲーム内(SubtitleCoreの入力パネル)のトグルから /mic-state で切り替わる。
+    # False の間は、音声由来のテキストを Grok へ渡さない。
+    # 手打ちは対象外（明示的な操作なので止めない）。字幕表示も止めない。
+    _mic_send_enabled = True
+
+    # ── /ask の待ち合わせ ─────────────────────────────────────
+    # Discord など外部から「投げて答えを待つ」ために使う。
+    # _process_text が結果を書き込み、待っている側を起こす。
+    _ask_lock = threading.Lock()
+    _ask_waiters: dict = {}
+
+    def _ask_register(self, ask_id: str) -> "threading.Event":
+        ev = threading.Event()
+        with self._ask_lock:
+            self._ask_waiters[ask_id] = {"event": ev, "result": None}
+        return ev
+
+    def _ask_resolve(self, ask_id: str, result: dict) -> None:
+        """
+        先に決まった結果を優先する。
+        finally で「念のため」返す処理が、成功した結果を上書きしないようにするため。
+        """
+        if not ask_id:
+            return
+        with self._ask_lock:
+            slot = self._ask_waiters.get(ask_id)
+            if not slot:
+                return
+            if slot.get("result") is not None:
+                return
+            slot["result"] = result
+            slot["event"].set()
+
+    def _join_sequence_wavs(self, p_json: dict) -> str:
+        """
+        シーケンス再生の parts/line_*.wav を1本へ繋ぐ。
+
+        merged_wav はシーケンスモードだと作られない。Discord へ音声を送るには
+        1ファイルである方が扱いやすいので、ここで結合したものを作る。
+        失敗しても本筋には影響しないよう、空文字を返すだけにする。
+        """
+        import wave
+
+        try:
+            # 出力先の特定。p_json のキーに頼らず、複数の手掛かりから辿る。
+            # sequence_event_file が入らない構成があるため、
+            # 最後は TTS の出力フォルダの最新から探す。
+            run_dir = None
+            for key in ("sequence_event_file", "merged_wav", "response_file"):
+                raw = str(p_json.get(key, "") or "").strip()
+                if raw:
+                    cand = Path(raw).parent
+                    if (cand / "parts").exists():
+                        run_dir = cand
+                        break
+
+            if run_dir is None:
+                base = Path(self._cfg.output_dir) / "grok_tts_outputs"
+                if base.exists():
+                    dirs = sorted(
+                        (d for d in base.iterdir() if d.is_dir() and (d / "parts").exists()),
+                        key=lambda d: d.stat().st_mtime,
+                        reverse=True,
+                    )
+                    if dirs:
+                        run_dir = dirs[0]
+
+            if run_dir is None:
+                self.log.emit("[ask] 音声の出力先が見つからない")
+                return ""
+
+            parts_dir = run_dir / "parts"
+            if not parts_dir.exists():
+                return ""
+
+            parts = sorted(parts_dir.glob("line_*.wav"))
+            if not parts:
+                return ""
+
+            out = run_dir / "joined_for_external.wav"
+            if out.exists():
+                return str(out)
+
+            with wave.open(str(parts[0]), "rb") as first:
+                params = first.getparams()
+
+            with wave.open(str(out), "wb") as dst:
+                dst.setparams(params)
+                for part in parts:
+                    try:
+                        with wave.open(str(part), "rb") as src:
+                            dst.writeframes(src.readframes(src.getnframes()))
+                    except Exception:
+                        continue
+
+            self.log.emit(f"[ask] 音声を結合した {len(parts)}本 -> {out.name}")
+            return str(out)
+        except Exception as exc:
+            self.log.emit(f"[ask] 音声の結合に失敗: {exc}")
+            return ""
+
+    def _ask_pending_image_id(self) -> str:
+        """画像待ちの ask がいれば、その id を返す。無ければ空。"""
+        with self._ask_lock:
+            for aid, slot in self._ask_waiters.items():
+                if slot.get("want_image") and slot.get("result") is None:
+                    return aid
+        return ""
+
+    def _ask_offer_image(self, image_bytes: bytes) -> bool:
+        """
+        非同期で出来た SD 画像を、待っている ask へ1枚だけ渡す。
+        sd_prompt_generate_forever が有効だと画像は応答の後に別経路で出来るため、
+        テキスト確定時に返してしまうと画像が間に合わない。最初の1枚で解決する。
+        """
+        aid = self._ask_pending_image_id()
+        if not aid:
+            return False
+        with self._ask_lock:
+            slot = self._ask_waiters.get(aid)
+            if not slot or slot.get("result") is not None:
+                return False
+            slot["result"] = {
+                "text": slot.get("pending_text", ""),
+                "images": [image_bytes],
+                "sd_prompt": slot.get("pending_sd_prompt", ""),
+                "audio_path": slot.get("pending_audio", ""),
+            }
+            slot["event"].set()
+        self.log.emit(f"[ask] 後追いのSD画像を1枚返す id={aid[:8]}")
+        return True
+
+    def _ask_take(self, ask_id: str) -> dict | None:
+        with self._ask_lock:
+            slot = self._ask_waiters.pop(ask_id, None)
+        return slot.get("result") if slot else None
+
+    def _set_mic_send_enabled(self, enabled: bool, source: str) -> None:
+        before = self._mic_send_enabled
+        self._mic_send_enabled = bool(enabled)
+        if before != self._mic_send_enabled:
+            state = "送る" if self._mic_send_enabled else "止める"
+            self.log.emit(f"[mic-state] 音声のAI送信を{state} (from {source})")
+
     def _start_external_text_server(self) -> None:
         if not self._cfg.external_text_enabled:
             self.log.emit("[external] disabled")
@@ -463,10 +610,123 @@ class PipelineWorker(QObject):
                     return
                 self._write_json(
                     int(HTTPStatus.OK),
-                    {"ok": True, "mode": owner._source_mode(), "endpoint": endpoint},
+                    {"ok": True, "mode": owner._source_mode(), "endpoint": endpoint,
+                     "send_voice": owner._mic_send_enabled},
                 )
 
             def do_POST(self) -> None:
+                # 投げて答えを待つ。Discord など「返事を返す必要がある相手」用。
+                # /manual-text は投げっぱなしで結果が返らないので、こちらを使う。
+                if self.path == "/ask":
+                    if token:
+                        req_token = (self.headers.get("X-Auth-Token") or self.headers.get("X-Token") or "").strip()
+                        if req_token != token:
+                            self._write_json(int(HTTPStatus.FORBIDDEN), {"ok": False, "error": "forbidden"})
+                            return
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                        payload = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+                    except Exception:
+                        self._write_json(int(HTTPStatus.BAD_REQUEST), {"ok": False, "error": "invalid json"})
+                        return
+                    if not isinstance(payload, dict):
+                        self._write_json(int(HTTPStatus.BAD_REQUEST), {"ok": False, "error": "payload must be object"})
+                        return
+
+                    text = str(payload.get("text", "")).strip()
+                    if not text:
+                        self._write_json(int(HTTPStatus.BAD_REQUEST), {"ok": False, "error": "empty text"})
+                        return
+
+                    timeout_sec = float(payload.get("timeout_sec", 180) or 180)
+                    timeout_sec = max(5.0, min(600.0, timeout_sec))
+
+                    # 文字起こし変換を通す。手打ち経路と同じ扱いにする。
+                    # preprocessed=True は「変換済みなので触るな」の印なので、
+                    # 素のまま入れると 子供→奇跡 などの置換が効かないままGrokへ届く。
+                    text_grok = owner._apply_transcribe_conversion(text, mode="grok")
+                    text_display = owner._apply_transcribe_conversion(text, mode="display")
+                    if text_grok != text:
+                        owner.log.emit(f"[ask][conv] grok: {text[:40]} -> {text_grok[:40]}")
+
+                    ask_id = uuid.uuid4().hex
+                    ev = owner._ask_register(ask_id)
+                    owner._text_queue.put_nowait({
+                        "preprocessed": True,
+                        "text": text_grok,
+                        "display_text": text_display,
+                        "ask_id": ask_id,
+                    })
+                    owner.log.emit(f"[ask] 受付 id={ask_id[:8]} len={len(text)} timeout={timeout_sec:.0f}s")
+
+                    if not ev.wait(timeout_sec):
+                        # 画像待ちで時間切れなら、テキストだけでも返す。
+                        with owner._ask_lock:
+                            slot = owner._ask_waiters.get(ask_id) or {}
+                            pending_text = slot.get("pending_text", "")
+                            pending_sd = slot.get("pending_sd_prompt", "")
+                            pending_audio = slot.get("pending_audio", "")
+                        owner._ask_take(ask_id)
+                        if pending_text:
+                            owner.log.emit(f"[ask] 画像が間に合わずテキストのみ返す id={ask_id[:8]}")
+                            self._write_json(int(HTTPStatus.OK), {
+                                "ok": True, "text": pending_text,
+                                "sd_prompt": pending_sd, "images": [],
+                                "audio_path": pending_audio,
+                            })
+                            return
+                        owner.log.emit(f"[ask] タイムアウト id={ask_id[:8]}")
+                        self._write_json(int(HTTPStatus.GATEWAY_TIMEOUT), {"ok": False, "error": "timeout"})
+                        return
+
+                    result = owner._ask_take(ask_id) or {}
+                    images = result.get("images") or []
+                    text_out = str(result.get("text", "") or "")
+                    err = str(result.get("error", "") or "")
+                    owner.log.emit(
+                        f"[ask] 応答 id={ask_id[:8]} text={len(text_out)}字 images={len(images)}枚"
+                        + (f" error={err[:80]}" if err else "")
+                    )
+                    # 本文も画像も無いなら失敗として返す。ok=true で空を返すと、
+                    # 受け側が「成功したが何も無い」と解釈して黙ってしまう。
+                    if not text_out and not images:
+                        self._write_json(int(HTTPStatus.OK), {
+                            "ok": False,
+                            "error": err or "応答が空（Grokへの入力に失敗した可能性）",
+                        })
+                        return
+                    self._write_json(int(HTTPStatus.OK), {
+                        "ok": True,
+                        "text": text_out,
+                        "sd_prompt": result.get("sd_prompt", ""),
+                        "images": [base64.b64encode(b).decode("ascii") for b in images],
+                        "audio_path": result.get("audio_path", ""),
+                    })
+                    return
+
+                # 音声送信の可否トグル。ゲーム内のボタンから来る。
+                if self.path == "/mic-state":
+                    if token:
+                        req_token = (self.headers.get("X-Auth-Token") or self.headers.get("X-Token") or "").strip()
+                        if req_token != token:
+                            self._write_json(int(HTTPStatus.FORBIDDEN), {"ok": False, "error": "forbidden"})
+                            return
+                    try:
+                        length = int(self.headers.get("Content-Length", "0"))
+                        payload = json.loads(self.rfile.read(length).decode("utf-8")) if length > 0 else {}
+                    except Exception:
+                        self._write_json(int(HTTPStatus.BAD_REQUEST), {"ok": False, "error": "invalid json"})
+                        return
+                    if not isinstance(payload, dict):
+                        self._write_json(int(HTTPStatus.BAD_REQUEST), {"ok": False, "error": "payload must be object"})
+                        return
+                    owner._set_mic_send_enabled(
+                        bool(payload.get("send_voice", True)),
+                        str(payload.get("source", "external")).strip() or "external",
+                    )
+                    self._write_json(int(HTTPStatus.OK), {"ok": True, "send_voice": owner._mic_send_enabled})
+                    return
+
                 if self.path != endpoint:
                     self._write_json(int(HTTPStatus.NOT_FOUND), {"ok": False, "error": "not found"})
                     return
@@ -732,6 +992,9 @@ class PipelineWorker(QObject):
                         "hint=A1111起動/API有効/host-port-endpointを確認"
                     )
                 for index, image_bytes in enumerate(extract_sd_result_images(result), start=1):
+                    if index == 1:
+                        # /ask で画像待ちの相手がいれば、最初の1枚を渡す
+                        self._ask_offer_image(image_bytes)
                     self.sd_preview_image.emit(
                         {
                             "source": "sd-forever",
@@ -1022,7 +1285,10 @@ class PipelineWorker(QObject):
                         self.log.emit(f"[manual-prepared] grok: '{text_grok[:80]}'")
                         if text_display != text_grok:
                             self.log.emit(f"[manual-prepared] display: '{text_display[:80]}'")
-                        self._process_text(text_grok, manual=True, display_text=text_display)
+                        self._process_text(
+                            text_grok, manual=True, display_text=text_display,
+                            ask_id=str(item.get("ask_id", "") or ""),
+                        )
                         continue
 
                     raw_text = str(item or "").strip()
@@ -1033,10 +1299,9 @@ class PipelineWorker(QObject):
                         translated = self._translate_text(text_grok, self._cfg.translate_source, self._cfg.translate_target)
                         self.log.emit(f"[manual-translate] {text_grok[:60]} → {translated[:60]}")
                         text_grok = translated
-                    if self._cfg.translate_enabled and self._cfg.translate_input_subtitle_original:
-                        text_display = self._apply_transcribe_conversion(raw_text, mode="display")
-                    else:
-                        text_display = self._apply_transcribe_conversion(text_grok, mode="display")
+                    # 表示用は必ず原文から作る。Grok用に変換した後の文を食わせると、
+                    # to_display がぶら下がっている from(例:「子供」)が既に置換で消えていて発火しない。
+                    text_display = self._apply_transcribe_conversion(raw_text, mode="display")
                     if text_grok != raw_text:
                         self.log.emit(f"[manual-conv] grok: '{raw_text}' -> '{text_grok}'")
                     if text_display != raw_text:
@@ -1529,10 +1794,8 @@ class PipelineWorker(QObject):
                 else:
                     self.log.emit(f"[translate] {text[:60]} → {translated[:60]}")
                 text = translated
-            if self._cfg.translate_enabled and self._cfg.translate_input_subtitle_original:
-                display_text = self._apply_transcribe_conversion(raw_text, mode="display")
-            else:
-                display_text = self._apply_transcribe_conversion(raw_text, mode="display")
+            # 手打ちと同じく原文から作る。分岐していたが両側とも同じ処理だった。
+            display_text = self._apply_transcribe_conversion(raw_text, mode="display")
             if not text:
                 self.log.emit(f"[info] 変換後に空テキスト: {wav.name}")
                 return
@@ -1901,11 +2164,17 @@ class PipelineWorker(QObject):
 
         threading.Thread(target=_send, daemon=True).start()
 
-    def _process_text(self, text: str, wav: Optional[Path] = None, manual: bool = False, display_text: Optional[str] = None, origin_label: str = "") -> None:
+    def _process_text(self, text: str, wav: Optional[Path] = None, manual: bool = False, display_text: Optional[str] = None, origin_label: str = "", ask_id: str = "") -> None:
         _, pipeline_script = self._resolve_scripts()
         wav_name = wav.name if wav else (origin_label or "manual")
         # 字幕は元テキストのまま送る
         self._send_subtitle(display_text if display_text is not None else text, wav_name, "StackMale")
+
+        # 音声のAI送信が止められている間は、ここで打ち切る。
+        # 字幕は上で既に出しているので、画面には残る。手打ちは対象外。
+        if not manual and not self._mic_send_enabled:
+            self.log.emit(f"[mic-state] 音声のAI送信が止まっているので送らない: {wav_name}")
+            return
 
         # カナ変換ルールをconversion_jsonとして渡す（Grokレスポンスに適用される）
         kana_conv = [{"from": r[4], "to": r[1]} for r in self._kana_rules if r[4] and r[1]]
@@ -1935,12 +2204,36 @@ class PipelineWorker(QObject):
             "--llm-base-url", str(self._cfg.llm_base_url or "http://127.0.0.1:1234/v1"),
             "--llm-model", str(self._cfg.llm_model or ""),
             "--llm-api-key", str(self._cfg.llm_api_key or ""),
+            "--llm-runpod-email", str(getattr(self._cfg, "llm_runpod_email", "") or ""),
+            "--llm-runpod-password", str(getattr(self._cfg, "llm_runpod_password", "") or ""),
             "--llm-temperature", str(self._cfg.llm_temperature),
             "--llm-max-tokens", str(self._cfg.llm_max_tokens),
             "--llm-timeout", str(self._cfg.llm_timeout_seconds),
             "--llm-always-append-text", str(
                 getattr(self._cfg, "llm_always_append_text", "") or ""
             ),
+            "--strip-stage-directions" if getattr(
+                self._cfg, "strip_stage_directions_enabled", True
+            ) else "--no-strip-stage-directions",
+        ])
+        # ワード連動の追記ルールは文言が長くなりうるので、引数長の制限を避けて
+        # 一時JSON経由で渡す（体位一覧・曲リストなどを想定）。
+        keyword_rules = (
+            getattr(self._cfg, "llm_keyword_appends", None) or []
+            if bool(getattr(self._cfg, "llm_keyword_appends_enabled", True))
+            else []
+        )
+        if keyword_rules:
+            try:
+                handle = tempfile.NamedTemporaryFile(
+                    mode="w", encoding="utf-8", suffix=".json", delete=False
+                )
+                with handle:
+                    json.dump(keyword_rules, handle, ensure_ascii=False)
+                p_cmd.extend(["--llm-keyword-appends-file", handle.name])
+            except Exception as exc:
+                self._log(f"[llm] キーワード追記ルールの受け渡しに失敗: {exc}")
+        p_cmd.extend([
             "--grok-history-search-url", str(
                 getattr(
                     self._cfg,
@@ -1973,6 +2266,12 @@ class PipelineWorker(QObject):
             "--grok-history-response-preferred-terms", str(
                 getattr(self._cfg, "grok_history_response_preferred_terms", "") or ""
             ),
+            "--grok-history-date-from", str(
+                getattr(self._cfg, "grok_history_date_from", "") or ""
+            ),
+            "--grok-history-date-to", str(
+                getattr(self._cfg, "grok_history_date_to", "") or ""
+            ),
         ])
         p_cmd.append(
             "--grok-history"
@@ -1984,7 +2283,10 @@ class PipelineWorker(QObject):
             if bool(getattr(self._cfg, "grok_history_fallback_live", False))
             else "--no-grok-history-fallback-live"
         )
-        if str(self._cfg.llm_system_prompt or "").strip():
+        if (
+            bool(getattr(self._cfg, "llm_system_prompt_enabled", True))
+            and str(self._cfg.llm_system_prompt or "").strip()
+        ):
             p_cmd.extend(["--llm-system-prompt", str(self._cfg.llm_system_prompt)])
         if self._cfg.voice_volume >= 0:
             p_cmd.extend(["--voice-volume", str(self._cfg.voice_volume)])
@@ -2191,6 +2493,57 @@ class PipelineWorker(QObject):
                 f"[grok-limit] send_len={len(response_send)} display_len={len(response_display)} line_count={int(p_json.get('line_count', 0) or 0)}"
             )
             sd_prompt = str(p_json.get("sd_prompt", "") or "").strip()
+
+            # 応答が確定した時点で必ず返す。
+            # SD画像は sd_prompt_generate_forever の時に別経路で後から非同期生成されるため、
+            # sd_prompt_send_result を待つ枝に置くと、この設定では永久に解決しない。
+            # 画像が同期で取れる場合は下で拾い直す（_ask_resolve は先勝ちなので、
+            # 画像付きを先に決めたい場合はそちらが先に走る構造にしてある）。
+            if ask_id:
+                _sync_images = []
+                _sd_res = p_json.get("sd_prompt_send_result", {})
+                if isinstance(_sd_res, dict) and _sd_res:
+                    try:
+                        from core.sd_prompt_bridge import extract_sd_result_images
+                        _sync_images = list(extract_sd_result_images(_sd_res))
+                    except Exception:
+                        _sync_images = []
+                _text = response_display or response_send
+                # TTS の出力があれば一緒に返す。Discord へ音声として送れるようにする。
+                # シーケンス再生モードでは merged_wav が空で、行ごとに
+                # parts/line_XXX.wav へ分かれる。その場合は繋いで1本にする。
+                _wav = str(p_json.get("merged_wav", "") or "").strip()
+                if not _wav:
+                    _wav = self._join_sequence_wavs(p_json)
+                self.log.emit(
+                    f"[ask] 応答確定 text={len(_text)}字 "
+                    f"images={len(_sync_images)}枚 sd_prompt={'あり' if sd_prompt else 'なし'}"
+                    + (f" wav={Path(_wav).name}" if _wav else "")
+                )
+                if _sync_images or not sd_prompt:
+                    # 画像が揃っている、または画像が出ない返答。そのまま返す。
+                    self._ask_resolve(ask_id, {
+                        "text": _text,
+                        "images": _sync_images,
+                        "sd_prompt": sd_prompt,
+                        "audio_path": _wav,
+                    })
+                else:
+                    # 画像は後から別経路で出来る。テキストを控えて最初の1枚を待つ。
+                    with self._ask_lock:
+                        slot = self._ask_waiters.get(ask_id)
+                        if slot is not None and slot.get("result") is None:
+                            slot["want_image"] = True
+                            slot["pending_text"] = _text
+                            slot["pending_sd_prompt"] = sd_prompt
+                            slot["pending_audio"] = _wav
+                            self.log.emit(f"[ask] SD画像を待つ id={ask_id[:8]}")
+                        else:
+                            self._ask_resolve(ask_id, {
+                                "text": _text, "images": [], "sd_prompt": sd_prompt,
+                                "audio_path": _wav,
+                            })
+
             if sd_prompt:
                 self.log.emit(f"[sd-prompt] detected len={len(sd_prompt)}")
                 if getattr(self._cfg, "sd_prompt_generate_forever", False):
@@ -2211,6 +2564,14 @@ class PipelineWorker(QObject):
                     try:
                         from core.sd_prompt_bridge import extract_sd_result_images
 
+                        if ask_id:
+                            _imgs = list(extract_sd_result_images(sd_result))
+                            self.log.emit(f"[ask] SD画像 {len(_imgs)}枚を返す")
+                            self._ask_resolve(ask_id, {
+                                "text": response_display or response_send,
+                                "images": _imgs,
+                                "sd_prompt": sd_prompt,
+                            })
                         for index, image_bytes in enumerate(extract_sd_result_images(sd_result), start=1):
                             self.sd_preview_image.emit(
                                 {
@@ -2331,6 +2692,23 @@ class PipelineWorker(QObject):
             if ("10054" in msg) or ("10061" in msg) or ("connection reset" in lower) or ("connection refused" in lower):
                 self._emit_sbv2_diagnostics("pipeline_http_error")
             self.log.emit(f"[error] pipeline {label}: {exc}")
+            # /ask で待っている相手がいれば、失敗を伝えて解放する。
+            # ここで返さないと、相手はタイムアウトまで待たされる。
+            if ask_id:
+                self._ask_resolve(
+                    ask_id, {"text": "", "images": [], "error": f"pipeline: {msg[:280]}"}
+                )
+        finally:
+            # どの経路で抜けても放置しない。ただし「画像待ち」は正常な未解決なので触らない。
+            # ここで空を入れると、後から来る画像より先に確定してしまう。
+            if ask_id:
+                with self._ask_lock:
+                    slot = self._ask_waiters.get(ask_id)
+                    waiting_image = bool(slot and slot.get("want_image") and slot.get("result") is None)
+                if not waiting_image:
+                    self._ask_resolve(
+                        ask_id, {"text": "", "images": [], "error": "no result"}
+                    )
 
 
 # ---------------------------------------------------------------------------

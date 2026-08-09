@@ -48,10 +48,23 @@ class AppConfig:
     grok_history_required_match_mode: str
     grok_history_response_required_terms: str
     grok_history_response_preferred_terms: str
+    grok_history_date_from: str
+    grok_history_date_to: str
+    grok_history_autostart: bool
+    grok_history_api_port: int
+    grok_history_ollama_autostart: bool
+    grok_history_ollama_exe: str
+    grok_history_ollama_endpoint: str
+    grok_history_ollama_model: str
     tts_line_break_target_chars: int
     llm_base_url: str
     llm_model: str
     llm_api_key: str
+    # RunPod(Open WebUI) のログイン。トークンは28日で切れ、Pod作り直しでも無効になるため
+    # 資格情報を持たせて都度取得する。ローカルLLMでは使わない。
+    llm_runpod_email: str
+    llm_runpod_password: str
+    llm_system_prompt_enabled: bool
     llm_system_prompt: str
     llm_always_append_text: str
     llm_temperature: float
@@ -159,6 +172,14 @@ class AppConfig:
     translate_voice_enabled: bool = False
     translate_voice_target: str = "ja"
     filter_phrases: list[dict] = field(default_factory=list)
+    # 発話に特定ワードが含まれたとき、LLMへの入力に添える文言のルール一覧。
+    # {"enabled":bool,"pattern":str,"type":str,"append":str}
+    # append は文言そのもの、または .txt のパス（中身を読む）。
+    llm_keyword_appends: list[dict] = field(default_factory=list)
+    # ルールを個別に消さずに一括で止めるためのスイッチ。
+    llm_keyword_appends_enabled: bool = True
+    # 丸括弧内のト書き（動作説明）を読み上げから外すか。既定は外す。
+    strip_stage_directions_enabled: bool = True
     transcribe_conversion_dict: list[dict] = field(default_factory=list)
     conversion_dict: list[dict] = field(default_factory=list)
     sd_prompt_rewrite_rules: list[dict] = field(default_factory=list)

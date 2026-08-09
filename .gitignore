@@ -18,28 +18,21 @@ test/
 test3/
 _release_clean/
 
-# ユーザーのプリセット・辞書データ（個人の変換辞書が入るので公開しない）
-config/active_presets.json
-config/transcription_presets.json
-config/dictionary_presets.json
-config/*_presets.json
+# Grok会話DB・ベクター索引（518MB。会話内容そのものなので絶対に公開しない）
+# コードは grok_history/scripts/ に置くが、データは各自の環境で用意する。
+grok_history/runtime/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.faiss
 
-# ログ・作業ファイル
-_logs/
-setup_log.txt
-.playwright-mcp/
-screenshot/
-screenshots/
-/*.png
-/*.jpg
+# 取り込み待ちのGrokエクスポートZIP（中身は会話そのもの）
+grok_history/incoming/*
+!grok_history/incoming/README.txt
+*.zip
 
-# AI / エディタ作業用
-.claude/
-.codex/
-.cursor/
-AGENTS.md
+# RunPod会話スレッドの控え（実行時に作られる環境固有の状態）
+runpod_chat_state.json
 
-# git の作業ファイルを誤って add したもの
-FETCH_HEAD
-ORIG_HEAD
-MERGE_HEAD
+# 環境依存の一覧（曲・体位・衣装）は各自で用意する
+appends/

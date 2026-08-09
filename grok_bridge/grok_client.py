@@ -440,11 +440,15 @@ def _wait_stop_button_mode(
     time.sleep(0.3)
     logger.info("[timing] phase0 done (+%.2fs)", time.time() - t0)
 
-    # Phase 1: 停止ボタンが出現するまで待つ（最大5秒、高頻度ポーリング）
+    # Phase 1: 停止ボタンが出現するまで待つ（高頻度ポーリング）
+    # ここで取り逃すと phase2 が「テキスト変化を直接見る」経路に落ちる。
+    # 思考モードでは thinking-indicator の文字が刻々と変わるため、
+    # その経路に入ると本文が来る前の途中経過を掴んでしまう。
     stop_appeared = False
-    phase1_deadline = time.time() + 1.0
+    phase1_wait = float(getattr(config, "stop_button_appear_timeout_seconds", 8.0))
+    phase1_deadline = time.time() + phase1_wait
     t_phase1 = time.time()
-    logger.info("[timing] phase1: waiting for stop_button (max 1s)")
+    logger.info("[timing] phase1: waiting for stop_button (max %.1fs)", phase1_wait)
     while time.time() < phase1_deadline:
         if _is_stop_button_present(driver, config):
             stop_appeared = True
