@@ -89,12 +89,14 @@
 |---|---|---|
 | キャラに喋らせる・表情を変える | `MainGameVoiceFaceEventBridge` | パイプライン設定タブの送信先 |
 | 字幕を画面に出す | `MainGameSubtitleCore` | パイプライン設定タブの字幕送信 |
-| キーボードで打った文をキャラに喋らせる | `MainGameSubtitleCore`（入力パネル） | 設定不要 |
+| 声を出さずキーボードで話しかける | `MainGameSubtitleCore`（入力パネル） | パイプライン設定タブの外部テキスト受信 |
 | 会話に合わせてキャラの姿を変える（変身） | `MainGameCharacterMorphBridge` | ゲーム側で合言葉とカードを登録 |
 | 変身のときに光らせる | `MainGameGlow` | ゲーム側で設定 |
 | 生成した画像を部屋の壁に映す | `MainGameBlankMapAdd` | StableDiffusionタブのBlankMapAdd同期 |
 | 動画を部屋で再生する | `MainGameBlankMapAdd` | ゲーム側で設定 |
-| Handy（機器）を動きに同期させる | `MainGameHandySync` | ゲーム側で設定 |
+| Handy（機器）を動きに同期させる **※実験中** | `MainGameHandySync` | ゲーム側で設定 |
+
+**`MainGameHandySync` は実験中です。** 動作が安定しない場合があります。試す場合はその前提で使ってください。
 
 ### つながりかた
 

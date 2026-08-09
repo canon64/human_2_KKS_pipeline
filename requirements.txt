@@ -8,3 +8,9 @@ watchdog>=4.0.0
 selenium>=4.15
 undetected-chromedriver>=3.5
 deep-translator>=1.11
+
+# Discord連携を使う場合だけ必要。使わないなら入れなくてよい。
+# 音声の受信に discord.sinks が要るため py-cord を使う。
+# discord.py とは同じ discord 名前空間で衝突するので、同居させないこと。
+# 別途 ffmpeg の実行ファイルも要る（音声の再生に使う）。
+py-cord[voice]>=2.5
