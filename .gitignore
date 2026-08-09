@@ -36,3 +36,7 @@ runpod_chat_state.json
 
 # 環境依存の一覧（曲・体位・衣装）は各自で用意する
 appends/
+
+# Discord連携の実設定。チャンネルIDや.envの場所が入るので追跡しない。
+# 配布物には discord_bridge_config.sample.json を同梱する。
+discord_bridge_config.json

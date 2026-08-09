@@ -1,6 +1,6 @@
 {
-  "token_env": "DISCORD_PRIVATE_BOT_TOKEN",
-  "env_file": "J:\\tools\\api-scripts\\runtime\\.env",
+  "token_env": "DISCORD_BOT_TOKEN",
+  "env_file": "",
   "capture": {
     "voice_channel_id": 0,
     "target_user_ids": [],
@@ -11,14 +11,14 @@
     "pre_roll_sec": 0.25
   },
   "wav": {
-    "output_dir": "F:\\kks\\wave",
+    "output_dir": "",
     "sample_rate": 16000,
     "channels": 1,
     "filename_prefix": "discord",
     "use_temp_then_rename": true
   },
   "reply": {
-    "text_channel_id": 1536001203157082172,
+    "text_channel_id": 0,
     "message_limit": 1900,
     "max_images": 4,
     "play_voice_in_call": true
@@ -28,14 +28,12 @@
     "port": 18767,
     "token": "",
     "timeout_sec": 180.0,
-    "listen_channel_id": 1536001203157082172,
+    "listen_channel_id": 0,
     "command_prefix": "",
     "ignore_bots": true,
-    "allowed_guild_ids": [
-      1536001152527765695
-    ],
+    "allowed_guild_ids": [],
     "newline_replacement": " ",
-    "rtfw_host": "192.168.11.30",
+    "rtfw_host": "",
     "rtfw_port": 8766
   }
 }
