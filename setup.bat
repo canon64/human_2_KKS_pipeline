@@ -37,8 +37,12 @@ if not exist "%PY_EXE%" (
     del "%PY_DIR%\%PY_ZIP%"
 
     :: Enable pip in embeddable Python
+    :: Set-Content は Windows PowerShell だと UTF-8 出力時にBOMを付ける。
+    :: ._pth の先頭にBOMが入ると 1行目が ﻿python312.zip として読まれ、
+    :: 標準ライブラリを見つけられず init_fs_encoding で落ちる。
+    :: BOMを付けない書き方にする。
     for %%f in ("%PY_DIR%\python*._pth") do (
-        powershell -Command "(Get-Content '%%f') -replace '#import site','import site' | Set-Content '%%f'"
+        powershell -NoProfile -Command "$p='%%f'; $t=(Get-Content -LiteralPath $p) -replace '#import site','import site'; [IO.File]::WriteAllLines($p, $t, (New-Object Text.UTF8Encoding $false))"
     )
 )
 
