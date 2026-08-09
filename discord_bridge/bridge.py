@@ -231,8 +231,21 @@ class VoiceBridge:
             import discord  # noqa: F401
         except ImportError:
             self.log(
-                "[bridge] discord が入っていない。音声受信には py-cord が要る:\n"
+                "[bridge] discord が入っていない。py-cord を入れること:\n"
                 "         pip install py-cord[voice]"
+            )
+            return False
+
+        # discord.py と py-cord は同じ discord 名前空間を使う別物。
+        # 間違って discord.py が入っていると、起動はできても音声受信に使う
+        # discord.sinks が無く、原因の分かりにくい失敗になる。ここで止める。
+        if not hasattr(discord, "sinks"):
+            self.log(
+                "[bridge] 入っている discord が py-cord ではない"
+                "（discord.py の可能性が高い）。両者は同居できない。\n"
+                "         次の順で入れ直すこと:\n"
+                "           pip uninstall -y discord.py py-cord discord\n"
+                "           pip install \"py-cord[voice]\""
             )
             return False
 
