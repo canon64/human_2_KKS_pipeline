@@ -37,16 +37,15 @@ if not exist "%PY_EXE%" (
     del "%PY_DIR%\%PY_ZIP%"
 
     :: Enable pip in embeddable Python
-    :: Set-Content は Windows PowerShell だと UTF-8 出力時にBOMを付ける。
-    :: ._pth の先頭にBOMが入ると 1行目が ﻿python312.zip として読まれ、
-    :: 標準ライブラリを見つけられず init_fs_encoding で落ちる。
-    :: BOMを付けない書き方にする。
+    :: Set-Content adds a BOM on Windows PowerShell. A BOM at the head of
+    :: ._pth makes the first line read as "<BOM>python312.zip", so the stdlib
+    :: is not found and Python dies in init_fs_encoding. Write without BOM.
     for %%f in ("%PY_DIR%\python*._pth") do (
         powershell -NoProfile -Command "$p='%%f'; $t=(Get-Content -LiteralPath $p) -replace '#import site','import site'; [IO.File]::WriteAllLines($p, $t, (New-Object Text.UTF8Encoding $false))"
     )
 )
 
-:: Check / install pip (python.exeがあってもpipがなければ再導入)
+:: Check / install pip (reinstall if python.exe exists but pip does not)
 if not exist "%PIP_EXE%" (
     echo pip not found. Installing pip...
     powershell -Command "Invoke-WebRequest -Uri '%GET_PIP_URL%' -OutFile '%PY_DIR%\get-pip.py'"
@@ -98,7 +97,7 @@ if not exist "%SEVEN_ZIP%" (
     exit /b 1
 )
 echo [step] 7za.exe found >> "%SETUP_LOG%"
-:: CUDA12版が残っていたら削除（CUDA11版に切り替え）
+:: Remove CUDA12 build if present (we switch to the CUDA11 build)
 echo [step] checking CUDA12 dll >> "%SETUP_LOG%"
 if exist "%CUDA_DLLS_DIR%\cublas64_12.dll" (
     echo [step] removing old CUDA12 DLLs >> "%SETUP_LOG%"
@@ -129,7 +128,7 @@ if not exist "%CUDA_MARKER%" (
         exit /b 1
     )
     del "%CUDA_7Z%"
-    :: cudart64_11.dll を pip パッケージから取得してコピー
+    :: Fetch cudart64_11.dll from the pip package and copy it
     echo Downloading CUDA runtime ^(cudart64_11.dll^) ...
     "%PIP_EXE%" install nvidia-cuda-runtime-cu11 --target "%~dp0python\_cudart_tmp" -q
     "%PY_EXE%" "%~dp0_tools\copy_cudart.py" "%~dp0python\_cudart_tmp" "%CUDA_DLLS_DIR%"
