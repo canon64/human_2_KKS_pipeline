@@ -915,7 +915,11 @@ class MainWindow(QMainWindow):
         llm_row = QHBoxLayout()
         self.llm_base_url_edit = QLineEdit("http://127.0.0.1:1234/v1")
         self.llm_base_url_edit.setPlaceholderText(
-            "LM Studio: http://127.0.0.1:1234/v1  /  RunPod: Pod IDのみ可"
+            "ローカルLLM: http://127.0.0.1:1234/v1 のようなURL  /  RunPod: Pod ID だけでも可"
+        )
+        self.llm_base_url_edit.setToolTip(
+            "ローカルLLM… OpenAI互換APIのURL。例 LM Studio: http://127.0.0.1:1234/v1"
+            "／RunPod… Open WebUI のURL、またはPod IDのみ"
         )
         # 手打ちも残したいので編集可能コンボにする。RunPod選択時は「取得」で実機から埋める。
         self.llm_model_edit = _ModelComboBox()
@@ -925,7 +929,9 @@ class MainWindow(QMainWindow):
         self.llm_model_edit.lineEdit().setPlaceholderText("model id")
         self.llm_model_fetch_btn = QPushButton("取得")
         self.llm_model_fetch_btn.setToolTip(
-            "RunPod(またはOpenAI互換サーバー)に入っているモデル一覧を取得して候補に入れる"
+            "接続先に入っているモデルの一覧を取り寄せて、左のmodel欄の候補にする。"
+            "ローカルLLM(LM Studio/Ollama等)でもRunPodでも使える。"
+            "先にbase欄の接続先を正しく入れてから押すこと。"
         )
         self.llm_model_fetch_btn.setMaximumWidth(56)
         self.llm_new_chat_btn = QPushButton("新規会話")
@@ -933,7 +939,6 @@ class MainWindow(QMainWindow):
             "RunPod側に新しい会話スレッドを作り、以後はそこへ送る。文脈を切りたいときに押す"
         )
         self.llm_new_chat_btn.setMaximumWidth(84)
-        llm_row.addWidget(QLabel("backend"))
         llm_row.addWidget(QLabel("base"))
         llm_row.addWidget(self.llm_base_url_edit, 1)
         llm_row.addWidget(QLabel("model"))
