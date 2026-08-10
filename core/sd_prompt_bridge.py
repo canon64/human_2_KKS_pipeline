@@ -34,7 +34,14 @@ _DEFAULT_END_TAG = "[SD_PROMPT_END]"
 _COMMON_TAG_PAIRS = (
     (_DEFAULT_BEGIN_TAG, _DEFAULT_END_TAG),
     ("[BEGIN]", "[END]"),
+    ("$ BEGIN $", "$ END $"),
 )
+
+
+def split_tag_variants(value: str) -> list[str]:
+    """GUIの | 区切り（または改行区切り）をタグ一覧へ変換する。"""
+    parts = re.split(r"[|\r\n]+", str(value or ""))
+    return [part.strip() for part in parts if part.strip()]
 
 
 def _tag_pairs(begin_tag: str, end_tag: str) -> list[tuple[str, str]]:
@@ -50,7 +57,11 @@ def _tag_pairs(begin_tag: str, end_tag: str) -> list[tuple[str, str]]:
             return
         pairs.append((b, e))
 
-    add_pair(begin_tag or _DEFAULT_BEGIN_TAG, end_tag or _DEFAULT_END_TAG)
+    begins = split_tag_variants(begin_tag) or [_DEFAULT_BEGIN_TAG]
+    ends = split_tag_variants(end_tag) or [_DEFAULT_END_TAG]
+    for index, begin in enumerate(begins):
+        end = ends[index] if index < len(ends) else ends[-1]
+        add_pair(begin, end)
     for common_begin, common_end in _COMMON_TAG_PAIRS:
         add_pair(common_begin, common_end)
     return pairs

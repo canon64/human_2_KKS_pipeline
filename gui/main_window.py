@@ -1683,10 +1683,18 @@ class MainWindow(QMainWindow):
         tag_row = QHBoxLayout()
         self.sd_prompt_begin_tag_edit = QLineEdit("[SD_PROMPT_BEGIN]")
         self.sd_prompt_end_tag_edit = QLineEdit("[SD_PROMPT_END]")
-        tag_row.addWidget(QLabel("開始タグ")); tag_row.addWidget(self.sd_prompt_begin_tag_edit, 1)
-        tag_row.addWidget(QLabel("終了タグ")); tag_row.addWidget(self.sd_prompt_end_tag_edit, 1)
+        self.sd_prompt_begin_tag_edit.setPlaceholderText("複数は | 区切り")
+        self.sd_prompt_end_tag_edit.setPlaceholderText("複数は | 区切り")
+        tag_row.addWidget(QLabel("開始タグ（|区切り）")); tag_row.addWidget(self.sd_prompt_begin_tag_edit, 1)
+        tag_row.addWidget(QLabel("終了タグ（|区切り）")); tag_row.addWidget(self.sd_prompt_end_tag_edit, 1)
         tag_widget = QWidget(); tag_widget.setLayout(tag_row)
         form.addRow("プロンプトタグ", tag_widget)
+        tag_help = QLabel(
+            "複数指定は | で区切り、開始と終了を同じ順番で組にする。"
+            "例: 開始 [BEGIN] | $ BEGIN $　終了 [END] | $ END $"
+        )
+        tag_help.setWordWrap(True)
+        form.addRow("", tag_help)
 
         blankmap_row = QHBoxLayout()
         self.sd_blankmap_sync_chk = QCheckBox("BlankMapAdd同期")

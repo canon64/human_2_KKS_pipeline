@@ -81,6 +81,24 @@ def partial_tag_holdback(text: str, tag: str) -> int:
     return 0
 
 
+def _split_tags(value: str, fallback: str) -> list[str]:
+    normalized = str(value or fallback).replace("\r", "\n")
+    tags = [part.strip() for line in normalized.split("\n") for part in line.split("|") if part.strip()]
+    return tags or [fallback]
+
+
+def _first_tag(text: str, tags: list[str]) -> tuple[int, int]:
+    """最も手前にあるタグの位置と一覧indexを返す。"""
+    found_pos = -1
+    found_index = -1
+    for index, tag in enumerate(tags):
+        pos = _ifind(text, tag)
+        if pos >= 0 and (found_pos < 0 or pos < found_pos):
+            found_pos = pos
+            found_index = index
+    return found_pos, found_index
+
+
 def looks_like_speech(s: str) -> bool:
     """日本語（かな/カナ/漢字）や 。！？ を含めば「喋り」とみなす（SDプロンプトは英語想定）。"""
     for ch in s:
@@ -104,8 +122,9 @@ class GrokStreamParser:
     ):
         self.on_sentence = on_sentence
         self.on_sd_prompt = on_sd_prompt
-        self.begin = begin_tag or "[SD_PROMPT_BEGIN]"
-        self.end = end_tag or "[SD_PROMPT_END]"
+        self.begins = _split_tags(begin_tag, "[SD_PROMPT_BEGIN]")
+        self.ends = _split_tags(end_tag, "[SD_PROMPT_END]")
+        self.active_end = self.ends[0]
         self.policy = (unclosed_policy or "auto").strip().lower()
         self.logger = logger
         self.mode = "speak"
@@ -155,10 +174,12 @@ class GrokStreamParser:
             if not pending:
                 break
             if self.mode == "speak":
-                p = _ifind(pending, self.begin)
+                p, begin_index = _first_tag(pending, self.begins)
                 if p >= 0:
                     self._emit(pending[:p], flush_all=True)  # 境界＝端数も喋る
-                    self.consumed += p + len(self.begin)
+                    active_begin = self.begins[begin_index]
+                    self.active_end = self.ends[begin_index] if begin_index < len(self.ends) else self.ends[-1]
+                    self.consumed += p + len(active_begin)
                     self.mode = "collect"
                     self.sd_buf = ""
                     continue
@@ -166,15 +187,15 @@ class GrokStreamParser:
                     self._emit(pending, flush_all=True)
                     self.consumed = len(full_text)
                     break
-                hold = partial_tag_holdback(pending, self.begin)
+                hold = max(partial_tag_holdback(pending, tag) for tag in self.begins)
                 speakable = pending[: len(pending) - hold] if hold else pending
                 self.consumed += self._emit(speakable, flush_all=False)
                 break
             else:  # collect
-                q = _ifind(pending, self.end)
+                q = _ifind(pending, self.active_end)
                 if q >= 0:
                     self.sd_buf += pending[:q]
-                    self.consumed += q + len(self.end)
+                    self.consumed += q + len(self.active_end)
                     self._fire_sd(self.sd_buf)  # ★END検知で即送信（パース時＝再生より先行）
                     self.sd_buf = ""
                     self.mode = "speak"
@@ -184,7 +205,7 @@ class GrokStreamParser:
                     self.consumed = len(full_text)
                     self._resolve_dangling()
                     break
-                hold = partial_tag_holdback(pending, self.end)
+                hold = partial_tag_holdback(pending, self.active_end)
                 take = pending[: len(pending) - hold] if hold else pending
                 self.sd_buf += take
                 self.consumed += len(take)
