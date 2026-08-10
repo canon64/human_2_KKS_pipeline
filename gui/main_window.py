@@ -83,6 +83,7 @@ from controllers.settings_controller import (
 from controllers.rtfw_lan_controller import RtfwLanController
 from discord_bridge.config import parse_discord_id
 from discord_bridge.profile import update_bot_profile
+from discord_bridge.token_store import save_env_secret
 from core.io_utils import (
     last_json_line as _last_json_line,
     save_text as _save_text,
@@ -1228,6 +1229,17 @@ class MainWindow(QMainWindow):
         self.discord_env_file_edit = QLineEdit(ENV_DEFAULT_PATH)
         form.addRow(".env の場所", self.discord_env_file_edit)
 
+        token_row = QHBoxLayout()
+        self.discord_token_value_edit = QLineEdit()
+        self.discord_token_value_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.discord_token_value_edit.setPlaceholderText("保存時だけBotトークンを入力")
+        self.discord_token_save_btn = QPushButton(".envへ保存")
+        self.discord_token_save_btn.clicked.connect(self._discord_save_token)
+        token_row.addWidget(self.discord_token_value_edit, 1)
+        token_row.addWidget(self.discord_token_save_btn)
+        token_widget = QWidget(); token_widget.setLayout(token_row)
+        form.addRow("Botトークン", token_widget)
+
         profile_row = QHBoxLayout()
         self.discord_bot_name_edit = QLineEdit()
         self.discord_bot_name_edit.setMaxLength(32)
@@ -1479,6 +1491,22 @@ class MainWindow(QMainWindow):
         )
         if path:
             self.discord_avatar_path_edit.setText(path)
+
+    def _discord_save_token(self) -> None:
+        token = self.discord_token_value_edit.text()
+        try:
+            path = save_env_secret(
+                self.discord_env_file_edit.text().strip() or ENV_DEFAULT_PATH,
+                self.discord_token_env_edit.text().strip() or "DISCORD_BOT_TOKEN",
+                token,
+            )
+            self.discord_status_label.setText("Botトークンを.envへ保存した")
+            self._append_log(f"[discord] Botトークンを保存した: {path}")
+        except Exception as exc:
+            self.discord_status_label.setText(f"Botトークンの保存に失敗: {exc}")
+            self._append_log(f"[discord] Botトークンの保存に失敗: {exc}")
+        finally:
+            self.discord_token_value_edit.clear()
 
     def _discord_select_banner(self) -> None:
         current = self.discord_banner_path_edit.text().strip()
