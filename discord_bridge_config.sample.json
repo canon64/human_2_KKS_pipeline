@@ -1,6 +1,6 @@
 {
   "token_env": "DISCORD_BOT_TOKEN",
-  "env_file": "",
+  "env_file": ".env",
   "profile": {
     "username": "",
     "avatar_path": "",

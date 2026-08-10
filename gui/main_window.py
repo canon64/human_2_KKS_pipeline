@@ -441,7 +441,7 @@ class _NoWheelAlwaysComboBox(_NoWheelComboBox):
 # メインウィンドウ
 # ---------------------------------------------------------------------------
 
-ENV_DEFAULT_PATH = "J:" + chr(92) + "tools" + chr(92) + "api-scripts" + chr(92) + "runtime" + chr(92) + ".env"
+ENV_DEFAULT_PATH = str(PROJECT_ROOT / ".env")
 
 
 class MainWindow(QMainWindow):

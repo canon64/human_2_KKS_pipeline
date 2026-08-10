@@ -130,8 +130,8 @@ class BridgeConfig:
     # Bot トークンを読む環境変数名。トークン自体はここに置かない。
     token_env: str = "DISCORD_BOT_TOKEN"
 
-    # .env の場所。abc_canvas と同じ置き場を既定にする。
-    env_file: str = r"J:\tools\api-scripts\runtime\.env"
+    # .env の場所。配布先でも成立するようツール本体の直下を既定にする。
+    env_file: str = str(Path(__file__).resolve().parents[1] / ".env")
 
     capture: VoiceCaptureConfig = field(default_factory=VoiceCaptureConfig)
     wav: WavOutputConfig = field(default_factory=WavOutputConfig)
