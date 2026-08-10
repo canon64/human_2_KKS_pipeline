@@ -7,8 +7,15 @@ Human_2_kks から独立して動かせるよう、このライブラリ自身�
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
+
+
+def parse_discord_id(value: object) -> int:
+    """Discordのコピー文字列からSnowflake IDだけを取り出す。"""
+    match = re.search(r"(?<![0-9])[0-9]{15,25}(?![0-9])", str(value or ""))
+    return int(match.group(0)) if match else 0
 
 
 @dataclass
