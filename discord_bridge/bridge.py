@@ -553,7 +553,7 @@ class VoiceBridge:
             target_user_id = int(self.config.reply.dm_user_id or 0)
             if getattr(message, "guild", None) is not None:
                 return
-            if not target_user_id or message.author.id != target_user_id:
+            if target_user_id and message.author.id != target_user_id:
                 return
         else:
             # 許可したサーバー以外では動かない。設定を間違えても他所へ流れない。
