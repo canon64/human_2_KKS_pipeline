@@ -106,7 +106,7 @@ class PipelineLink:
     allowed_guild_ids: list[int] = field(default_factory=list)
 
     # 音声メッセージの文字起こし先。パイプラインが使う RTFW LAN と同じ。
-    rtfw_host: str = "192.168.11.30"
+    rtfw_host: str = "127.0.0.1"
     rtfw_port: int = 8766
 
     # 改行の置き換え文字。

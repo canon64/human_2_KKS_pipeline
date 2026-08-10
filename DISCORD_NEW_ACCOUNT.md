@@ -93,7 +93,7 @@ Discord アプリまたはブラウザ版で、新アカウントにログイン
 
 ## 6. トークンを .env へ入れる
 
-`J:\tools\api-scripts\runtime\.env` に次の1行を足す。
+ツール本体と同じフォルダにある `.env` に次の1行を足す。
 
 ```
 DISCORD_PRIVATE_BOT_TOKEN=（手順4でコピーしたトークン）

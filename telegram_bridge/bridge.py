@@ -32,7 +32,7 @@ API_ROOT = "https://api.telegram.org"
 @dataclass
 class TelegramConfig:
     token_env: str = "TELEGRAM_BOT_TOKEN"
-    env_file: str = r"J:\tools\api-scripts\runtime\.env"
+    env_file: str = str(Path(__file__).resolve().parents[1] / ".env")
 
     # このチャットだけ相手にする。空なら最初に話しかけてきた相手を覚える。
     # 他人が Bot を見つけても反応させないための歯止め。

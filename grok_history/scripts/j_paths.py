@@ -9,7 +9,9 @@ API_SCRIPTS_ROOT = Path(
 )
 RUNTIME_ROOT = API_SCRIPTS_ROOT / "runtime"
 DATA_ROOT = RUNTIME_ROOT / "data"
-SYSTEM_TOOLS_ROOT = Path(os.environ.get("J_SYSTEM_TOOLS_ROOT", r"J:\system_tools"))
+SYSTEM_TOOLS_ROOT = Path(
+    os.environ.get("H2K_SYSTEM_TOOLS_ROOT", API_SCRIPTS_ROOT / "system_tools")
+)
 
 
 def data_path(*parts: str) -> Path:

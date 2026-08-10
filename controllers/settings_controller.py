@@ -272,7 +272,7 @@ def build_config(window, *, config_file: Path, default_source_mode: str) -> AppC
         faster_language=window.faster_lang_edit.text().strip() or "ja",
         faster_beam=max(1, int(window.faster_beam_spin.value())),
         fw_backend=str(window.fw_backend_combo.currentData() or "local"),
-        rtfw_host=window.rtfw_host_edit.text().strip() or "192.168.11.6",
+        rtfw_host=window.rtfw_host_edit.text().strip() or "127.0.0.1",
         rtfw_port=int(window.rtfw_port_spin.value()),
         pipeline_python=Path(window.pipeline_python_edit.text().strip()).expanduser().resolve(),
         llm_backend=_normalize_llm_backend(
@@ -709,7 +709,7 @@ def load_config(window, *, config_file: Path, default_source_mode: str) -> None:
         window.faster_beam_spin.setValue(i("faster_beam", window.faster_beam_spin.value()))
         backend_index = window.fw_backend_combo.findData(s("fw_backend", "local"))
         window.fw_backend_combo.setCurrentIndex(max(0, backend_index))
-        window.rtfw_host_edit.setText(s("rtfw_host", "192.168.11.6"))
+        window.rtfw_host_edit.setText(s("rtfw_host", "127.0.0.1"))
         window.rtfw_port_spin.setValue(i("rtfw_port", 8766))
         window.pipeline_python_edit.setText(s("pipeline_python", window.pipeline_python_edit.text()))
         llm_backend = _normalize_llm_backend(data.get("llm_backend", "grok_browser"), "grok_browser")
@@ -828,8 +828,8 @@ def load_config(window, *, config_file: Path, default_source_mode: str) -> None:
         if sd_endpoint_saved == "/sd-prompt" and sd_port_saved == 18768:
             sd_endpoint_saved = "/sdapi/v1/txt2img"
             sd_port_saved = 7860
-            if sd_host_saved in ("", "127.0.0.1"):
-                sd_host_saved = "192.168.11.10"
+            if not sd_host_saved:
+                sd_host_saved = "127.0.0.1"
         window.sd_prompt_begin_tag_edit.setText(s("sd_prompt_begin_tag", "[SD_PROMPT_BEGIN]") or "[SD_PROMPT_BEGIN]")
         window.sd_prompt_end_tag_edit.setText(s("sd_prompt_end_tag", "[SD_PROMPT_END]") or "[SD_PROMPT_END]")
         window.sd_prompt_send_chk.setChecked(b("sd_prompt_send_enabled", False))

@@ -40,8 +40,7 @@ GROK_HISTORY_ROOT = _ROOT / "grok_history"
 # 同梱 python には faiss が無いため、索引検索できる python を順に探す。
 _PYTHON_CANDIDATES = (
     _ROOT / "python" / "python.exe",
-    Path(r"J:\system_tools\venvs\py310-common\Scripts\python.exe"),
-    Path(r"J:\system_tools\python310\python.exe"),
+    Path(sys.executable),
 )
 
 _process: Optional[subprocess.Popen] = None

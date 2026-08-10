@@ -10,7 +10,7 @@ Installing collected packages: pip
     Found existing installation: pip 26.0.1
     Uninstalling pip-26.0.1:
       Successfully uninstalled pip-26.0.1
-  WARNING: The scripts pip.exe, pip3.12.exe and pip3.exe are installed in 'F:\kks\work\tools\human_2_KKS_pipeline\python\Scripts' which is not on PATH.
+  WARNING: The scripts pip.exe, pip3.12.exe and pip3.exe are installed in '.\python\Scripts' which is not on PATH.
   Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
 Successfully installed pip-26.2.1
 [step] setuptools install 
@@ -18,8 +18,8 @@ Requirement already satisfied: setuptools==70.3.0 in .\python\Lib\site-packages 
 [step] wheel install 
 Requirement already satisfied: wheel in .\python\Lib\site-packages (0.47.0)
 Requirement already satisfied: packaging>=24.0 in .\python\Lib\site-packages (from wheel) (26.1)
-[step] CUDA DLL check: SEVEN_ZIP=F:\kks\work\tools\human_2_KKS_pipeline\_tools\7za.exe 
-[step] CUDA_MARKER=F:\kks\work\tools\human_2_KKS_pipeline\python\cuda_dlls\cublas64_11.dll 
+[step] CUDA DLL check: SEVEN_ZIP=.\_tools\7za.exe
+[step] CUDA_MARKER=.\python\cuda_dlls\cublas64_11.dll
 [step] 7za.exe found 
 [step] checking CUDA12 dll 
 [step] checking CUDA_MARKER 

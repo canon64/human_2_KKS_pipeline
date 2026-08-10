@@ -10,8 +10,8 @@ from typing import Callable, Optional
 import numpy as np
 
 
-CLIENT_ROOT = Path(r"J:\tools\scripts\rtfw_lan_client")
-COMMON_ENV = Path(r"J:\tools\api-scripts\runtime\.env")
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+COMMON_ENV = PROJECT_ROOT / ".env"
 
 
 def _load_shared_token() -> None:
@@ -24,8 +24,9 @@ def _load_shared_token() -> None:
 
 
 def _client_types():
-    if str(CLIENT_ROOT) not in sys.path:
-        sys.path.insert(0, str(CLIENT_ROOT))
+    client_root = os.getenv("RTFW_LAN_CLIENT_ROOT", "").strip()
+    if client_root and client_root not in sys.path:
+        sys.path.insert(0, client_root)
     from rtfw_lan_client.config import ClientConfig
     from rtfw_lan_client.lan import LanTranscriptionClient
     return ClientConfig, LanTranscriptionClient
@@ -172,7 +173,7 @@ def dispatch_transcription(
     if backend == "rtfw_lan":
         return transcribe_wav_rtfw(
             wav_path,
-            host=str(getattr(cfg, "rtfw_host", "192.168.11.6")),
+            host=str(getattr(cfg, "rtfw_host", "127.0.0.1")),
             port=int(getattr(cfg, "rtfw_port", 8766)),
             status_callback=status_callback,
         )

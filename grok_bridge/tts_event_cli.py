@@ -830,7 +830,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--sd-prompt-end-tag", default="[SD_PROMPT_END]", help="End marker for SD prompt block in LLM response.")
     parser.add_argument("--sd-prompt-send-enabled", action="store_true", help="Send extracted Stable Diffusion prompt to a remote receiver.")
     parser.add_argument("--sd-skip-send", action="store_true", help="Skip the in-process SD txt2img call. Used when pipeline_worker handles Generate forever loop.")
-    parser.add_argument("--sd-prompt-target-host", default="192.168.11.10", help="Stable Diffusion WebUI API host.")
+    parser.add_argument("--sd-prompt-target-host", default="127.0.0.1", help="Stable Diffusion WebUI API host.")
     parser.add_argument("--sd-prompt-target-port", type=int, default=7860, help="Stable Diffusion WebUI API port.")
     parser.add_argument("--sd-prompt-endpoint", default="/sdapi/v1/txt2img", help="Stable Diffusion WebUI txt2img endpoint path.")
     parser.add_argument("--sd-prompt-token", default="", help="SD prompt receiver token sent via X-Auth-Token header.")

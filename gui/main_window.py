@@ -22,12 +22,8 @@ import sounddevice as sd
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-CODE_PARTS = Path(r"J:\tools\api-scripts\repo\code_parts\python")
-if str(CODE_PARTS) not in sys.path:
-    sys.path.insert(0, str(CODE_PARTS))
 
 from voice_gate_recorder import RecorderConfig, get_input_devices
-from qt_dropdown.qt_dropdown import create_dropdown
 
 from PyQt6.QtCore import QObject, QEvent, QThread, QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QAction, QKeySequence, QPixmap, QShortcut
@@ -801,15 +797,14 @@ class MainWindow(QMainWindow):
         w = QWidget(); w.setLayout(whisper_row)
         form.addRow("Whisper", w)
 
-        self.fw_backend_combo = create_dropdown(items=[
-            ("ローカルFW", "local"),
-            ("サブPC RTFW LAN", "rtfw_lan"),
-        ], value="local")
+        self.fw_backend_combo = _NoWheelComboBox()
+        self.fw_backend_combo.addItem("ローカルFW", "local")
+        self.fw_backend_combo.addItem("サブPC RTFW LAN", "rtfw_lan")
         backend_w = QWidget(); backend_row = QHBoxLayout(backend_w); backend_row.setContentsMargins(0, 0, 0, 0)
         backend_row.addWidget(self.fw_backend_combo); backend_row.addStretch(1)
         form.addRow("FW実行先", backend_w)
 
-        self.rtfw_host_edit = QLineEdit("192.168.11.6")
+        self.rtfw_host_edit = QLineEdit("127.0.0.1")
         self.rtfw_port_spin = _NoWheelPortSpinBox(); self.rtfw_port_spin.setRange(1, 65535); self.rtfw_port_spin.setValue(8766)
         lan_target = QWidget(); lan_target_row = QHBoxLayout(lan_target); lan_target_row.setContentsMargins(0, 0, 0, 0)
         lan_target_row.addWidget(QLabel("host")); lan_target_row.addWidget(self.rtfw_host_edit)
@@ -1615,7 +1610,7 @@ class MainWindow(QMainWindow):
         endpoint_row = QHBoxLayout()
         self.sd_prompt_send_chk = QCheckBox("自動送信")
         self.sd_prompt_send_chk.setChecked(False)
-        self.sd_prompt_host_edit = QLineEdit("192.168.11.10")
+        self.sd_prompt_host_edit = QLineEdit("127.0.0.1")
         self.sd_prompt_port_spin = _NoWheelPortSpinBox()
         self.sd_prompt_port_spin.setRange(1, 65535); self.sd_prompt_port_spin.setValue(7860)
         self.sd_prompt_endpoint_edit = QLineEdit("/sdapi/v1/txt2img")

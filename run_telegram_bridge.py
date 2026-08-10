@@ -52,12 +52,12 @@ def main() -> int:
 
     cfg = TelegramConfig(
         token_env=raw.get("token_env", "TELEGRAM_BOT_TOKEN"),
-        env_file=raw.get("env_file", r"J:\tools\api-scripts\runtime\.env"),
+        env_file=raw.get("env_file", str(ROOT / ".env")),
         allowed_chat_ids=list(raw.get("allowed_chat_ids") or []),
         message_limit=int(raw.get("message_limit", 3900)),
         max_images=int(raw.get("max_images", 1)),
         accept_voice=bool(raw.get("accept_voice", True)),
-        wav_output_dir=raw.get("wav_output_dir", r"F:\kks\wave"),
+        wav_output_dir=raw.get("wav_output_dir", ""),
     )
 
     load_env_file(cfg.env_file)

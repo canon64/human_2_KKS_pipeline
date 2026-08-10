@@ -107,7 +107,7 @@ class AppConfig:
     sd_prompt_begin_tag: str = "[SD_PROMPT_BEGIN]"
     sd_prompt_end_tag: str = "[SD_PROMPT_END]"
     sd_prompt_send_enabled: bool = False
-    sd_prompt_target_host: str = "192.168.11.10"
+    sd_prompt_target_host: str = "127.0.0.1"
     sd_prompt_target_port: int = 7860
     sd_prompt_endpoint: str = "/sdapi/v1/txt2img"
     sd_prompt_token: str = ""
@@ -182,4 +182,3 @@ class AppConfig:
     transcribe_conversion_dict: list[dict] = field(default_factory=list)
     conversion_dict: list[dict] = field(default_factory=list)
     sd_prompt_rewrite_rules: list[dict] = field(default_factory=list)
-

@@ -466,9 +466,7 @@ class PipelineWorker(QObject):
         if found:
             return found
 
-        bundled = Path(
-            r"F:\kks\BepInEx\plugins\canon_plugins\_tools\ffmpeg\bin\ffmpeg.exe"
-        )
+        bundled = Path(__file__).resolve().parents[1] / "_tools" / "ffmpeg" / "bin" / "ffmpeg.exe"
         if bundled.exists():
             return str(bundled)
         return ""
@@ -2771,4 +2769,3 @@ class PipelineWorker(QObject):
 # ---------------------------------------------------------------------------
 # ホイール誤爆防止
 # ---------------------------------------------------------------------------
-

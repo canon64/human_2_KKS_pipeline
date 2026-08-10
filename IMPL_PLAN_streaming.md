@@ -38,4 +38,4 @@ Grokの応答完了を待たず、**生成中に文が確定するたび** SBV2�
 - ゲーム側プラグインの変更（プロトコルは既存のまま乗る）。
 
 ## デプロイ
-- 反映は `F:/kks/work/scripts/Deploy-Human2KksPipelineLocal.ps1`（CODEBASE_STATE.md記載）。push/release時のアカウント・名義ルール厳守。
+- 反映はプロジェクトで定めた配布手順を使う。push/release時のアカウント・名義ルール厳守。

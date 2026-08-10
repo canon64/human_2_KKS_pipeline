@@ -62,5 +62,4 @@ AIが `[SD_PROMPT_BEGIN]`〜`[SD_PROMPT_END]` に出した**SD用プロンプト
 - ゲーム側プラグインの変更。
 
 ## デプロイ
-- ローカル反映は `F:/kks/work/scripts/Deploy-Human2KksPipelineLocal.ps1`（`CODEBASE_STATE.md` 記載）。
-- push/release は `F:/kks/work/tools/easy_deploy`（アカウント・名義ルール厳守）。
+- ローカル反映とpush/releaseは、プロジェクトで定めた配布手順を使う（アカウント・名義ルール厳守）。

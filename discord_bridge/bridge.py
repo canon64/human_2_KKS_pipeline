@@ -520,7 +520,7 @@ class VoiceBridge:
             return ""
 
         link = self.config.pipeline
-        host = getattr(link, "rtfw_host", "") or "192.168.11.30"
+        host = getattr(link, "rtfw_host", "") or "127.0.0.1"
         port = int(getattr(link, "rtfw_port", 0) or 8766)
         try:
             res = transcribe_wav_rtfw(wav, host=host, port=port)

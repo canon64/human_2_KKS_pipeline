@@ -8,8 +8,11 @@ from pathlib import Path
 from typing import Any
 
 
-DEFAULT_REGISTRY = Path(r"J:\workspaces\agent_process_watch\data\processes.json")
-COMMAND_HINT = r"J:\.agents\skills\safe-command\scripts\Start-GrokHistoryResponseApi.ps1"
+SCRIPT_PATH = Path(__file__).resolve()
+DEFAULT_REGISTRY = Path(
+    os.environ.get("AGENT_PROCESS_WATCH_REGISTRY", SCRIPT_PATH.parents[3] / "runtime" / "processes.json")
+)
+COMMAND_HINT = os.environ.get("GROK_HISTORY_API_COMMAND", str(SCRIPT_PATH))
 
 
 def _flatten(value: Any) -> list[dict[str, Any]]:
@@ -71,7 +74,7 @@ def main() -> int:
             "started_at": datetime.now().astimezone().isoformat(timespec="seconds"),
             "status": "running",
             "command_hint": COMMAND_HINT,
-            "cwd": r"J:\tools\api-scripts\pre_classification",
+            "cwd": str(SCRIPT_PATH.parents[3]),
             "log": str(args.stdout_log),
             "error_log": str(args.stderr_log),
             "port": args.port,
