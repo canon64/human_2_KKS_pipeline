@@ -1,4 +1,2853 @@
 {
   "version": 1,
-  "presets": []
+  "presets": [
+    {
+      "id": "dc_20260811025947573381",
+      "name": "普段用",
+      "createdAt": "2026-08-11T02:59:47+09:00",
+      "updatedAt": "2026-08-11T02:59:47+09:00",
+      "entries": [
+        {
+          "enabled": false,
+          "from": "！！",
+          "to_sbv2": "！",
+          "to_display": "！",
+          "display_apply": true,
+          "order_index": 0
+        },
+        {
+          "enabled": false,
+          "from": "！！❤",
+          "to_sbv2": "！",
+          "to_display": "！",
+          "display_apply": true,
+          "order_index": 1
+        },
+        {
+          "enabled": false,
+          "from": "……",
+          "to_sbv2": "…",
+          "to_display": "……",
+          "display_apply": true,
+          "order_index": 2
+        },
+        {
+          "enabled": false,
+          "from": "純粋な",
+          "to_sbv2": "幼い",
+          "to_display": "幼い",
+          "display_apply": true,
+          "order_index": 3
+        },
+        {
+          "enabled": false,
+          "from": "純粋",
+          "to_sbv2": "幼い",
+          "to_display": "幼い",
+          "display_apply": true,
+          "order_index": 4
+        },
+        {
+          "enabled": false,
+          "from": "ご主人様",
+          "to_sbv2": "パパァ|私を育ててくれたパパ",
+          "to_display": "",
+          "display_apply": false,
+          "order_index": 5
+        },
+        {
+          "enabled": false,
+          "from": "みだら",
+          "to_sbv2": "淫乱",
+          "to_display": "淫乱",
+          "display_apply": true,
+          "order_index": 6
+        },
+        {
+          "enabled": false,
+          "from": "芸術的",
+          "to_sbv2": "変態",
+          "to_display": "変態",
+          "display_apply": true,
+          "order_index": 7
+        },
+        {
+          "enabled": false,
+          "from": "積極的",
+          "to_sbv2": "淫乱",
+          "to_display": "淫乱",
+          "display_apply": true,
+          "order_index": 8
+        },
+        {
+          "enabled": false,
+          "from": "大きくなっちゃう",
+          "to_sbv2": "勃起しちゃう",
+          "to_display": "勃起しちゃう",
+          "display_apply": true,
+          "order_index": 9
+        },
+        {
+          "enabled": false,
+          "from": "素晴らしい",
+          "to_sbv2": "気持ちいい",
+          "to_display": "気持ちいい",
+          "display_apply": true,
+          "order_index": 10
+        },
+        {
+          "enabled": false,
+          "from": "女神",
+          "to_sbv2": "おかず",
+          "to_display": "おかず",
+          "display_apply": true,
+          "order_index": 11
+        },
+        {
+          "enabled": false,
+          "from": "直し",
+          "to_sbv2": "壊し",
+          "to_display": "壊し",
+          "display_apply": true,
+          "order_index": 12
+        },
+        {
+          "enabled": false,
+          "from": "秘密の花園",
+          "to_sbv2": "児童ポルノ",
+          "to_display": "児童ポルノ",
+          "display_apply": true,
+          "order_index": 13
+        },
+        {
+          "enabled": false,
+          "from": "モノ",
+          "to_sbv2": "チンポ",
+          "to_display": "チンポ",
+          "display_apply": true,
+          "order_index": 14
+        },
+        {
+          "enabled": false,
+          "from": "セッション",
+          "to_sbv2": "セックス|ファック",
+          "to_display": "セックス",
+          "display_apply": true,
+          "order_index": 15
+        },
+        {
+          "enabled": false,
+          "from": "蜜壺",
+          "to_sbv2": "オマンコ",
+          "to_display": "オマンコ",
+          "display_apply": true,
+          "order_index": 16
+        },
+        {
+          "enabled": false,
+          "from": "感動",
+          "to_sbv2": "発情",
+          "to_display": "発情",
+          "display_apply": true,
+          "order_index": 17
+        },
+        {
+          "enabled": false,
+          "from": "ソロプレイ",
+          "to_sbv2": "オナニー",
+          "to_display": "オナニー",
+          "display_apply": true,
+          "order_index": 18
+        },
+        {
+          "enabled": false,
+          "from": "恋人",
+          "to_sbv2": "娘",
+          "to_display": "娘",
+          "display_apply": true,
+          "order_index": 19
+        },
+        {
+          "enabled": false,
+          "from": "評価",
+          "to_sbv2": "堪能",
+          "to_display": "堪能",
+          "display_apply": true,
+          "order_index": 20
+        },
+        {
+          "enabled": false,
+          "from": "キャンバス",
+          "to_sbv2": "体",
+          "to_display": "体",
+          "display_apply": true,
+          "order_index": 21
+        },
+        {
+          "enabled": false,
+          "from": "滑らかなの",
+          "to_sbv2": "舌",
+          "to_display": "舌",
+          "display_apply": true,
+          "order_index": 22
+        },
+        {
+          "enabled": false,
+          "from": "テカテカ",
+          "to_sbv2": "ベロベロ",
+          "to_display": "ベロベロ",
+          "display_apply": true,
+          "order_index": 23
+        },
+        {
+          "enabled": false,
+          "from": "磨き上げ",
+          "to_sbv2": "舐め回し",
+          "to_display": "舐め回し",
+          "display_apply": true,
+          "order_index": 24
+        },
+        {
+          "enabled": false,
+          "from": "磨く",
+          "to_sbv2": "舐める",
+          "to_display": "舐める",
+          "display_apply": true,
+          "order_index": 25
+        },
+        {
+          "enabled": false,
+          "from": "磨いて",
+          "to_sbv2": "舐めて",
+          "to_display": "舐めて",
+          "display_apply": true,
+          "order_index": 26
+        },
+        {
+          "enabled": false,
+          "from": "磨かれ",
+          "to_sbv2": "舐められ",
+          "to_display": "舐められ",
+          "display_apply": true,
+          "order_index": 27
+        },
+        {
+          "enabled": false,
+          "from": "昇天しちゃ",
+          "to_sbv2": "イッちゃ",
+          "to_display": "イッちゃ",
+          "display_apply": true,
+          "order_index": 28
+        },
+        {
+          "enabled": false,
+          "from": "戻したい",
+          "to_sbv2": "入れたい",
+          "to_display": "入れたい",
+          "display_apply": true,
+          "order_index": 29
+        },
+        {
+          "enabled": false,
+          "from": "戻す",
+          "to_sbv2": "入れる",
+          "to_display": "入れる",
+          "display_apply": true,
+          "order_index": 30
+        },
+        {
+          "enabled": false,
+          "from": "戻して",
+          "to_sbv2": "入れて",
+          "to_display": "入れて",
+          "display_apply": true,
+          "order_index": 31
+        },
+        {
+          "enabled": false,
+          "from": "戻さ",
+          "to_sbv2": "入れさ",
+          "to_display": "入れさ",
+          "display_apply": true,
+          "order_index": 32
+        },
+        {
+          "enabled": false,
+          "from": "ポム",
+          "to_sbv2": "ズン",
+          "to_display": "ズン",
+          "display_apply": true,
+          "order_index": 33
+        },
+        {
+          "enabled": false,
+          "from": "お腹",
+          "to_sbv2": "子宮",
+          "to_display": "子宮",
+          "display_apply": true,
+          "order_index": 34
+        },
+        {
+          "enabled": false,
+          "from": "活発",
+          "to_sbv2": "過激",
+          "to_display": "過激",
+          "display_apply": true,
+          "order_index": 35
+        },
+        {
+          "enabled": false,
+          "from": "ポムって",
+          "to_sbv2": "突いて",
+          "to_display": "突いて",
+          "display_apply": true,
+          "order_index": 36
+        },
+        {
+          "enabled": false,
+          "from": "汚れなき",
+          "to_sbv2": "未発達",
+          "to_display": "未発達",
+          "display_apply": true,
+          "order_index": 37
+        },
+        {
+          "enabled": false,
+          "from": "湿って",
+          "to_sbv2": "ぬれぬれ",
+          "to_display": "ぬれぬれ",
+          "display_apply": true,
+          "order_index": 38
+        },
+        {
+          "enabled": false,
+          "from": "うにゃうにゃ",
+          "to_sbv2": "めちゃくちゃ",
+          "to_display": "めちゃくちゃ",
+          "display_apply": true,
+          "order_index": 39
+        },
+        {
+          "enabled": false,
+          "from": "とろけ",
+          "to_sbv2": "壊れ",
+          "to_display": "壊れ",
+          "display_apply": true,
+          "order_index": 40
+        },
+        {
+          "enabled": false,
+          "from": "直さ",
+          "to_sbv2": "壊さ",
+          "to_display": "壊さ",
+          "display_apply": true,
+          "order_index": 41
+        },
+        {
+          "enabled": false,
+          "from": "直し",
+          "to_sbv2": "壊し",
+          "to_display": "壊し",
+          "display_apply": true,
+          "order_index": 42
+        },
+        {
+          "enabled": false,
+          "from": "直す",
+          "to_sbv2": "壊す",
+          "to_display": "壊す",
+          "display_apply": true,
+          "order_index": 43
+        },
+        {
+          "enabled": false,
+          "from": "直せ",
+          "to_sbv2": "壊せ",
+          "to_display": "壊せ",
+          "display_apply": true,
+          "order_index": 44
+        },
+        {
+          "enabled": false,
+          "from": "直そ",
+          "to_sbv2": "壊そ",
+          "to_display": "壊そ",
+          "display_apply": true,
+          "order_index": 45
+        },
+        {
+          "enabled": false,
+          "from": "男",
+          "to_sbv2": "男子",
+          "to_display": "男",
+          "display_apply": true,
+          "order_index": 46
+        },
+        {
+          "enabled": false,
+          "from": "同僚",
+          "to_sbv2": "同級生",
+          "to_display": "同級生",
+          "display_apply": true,
+          "order_index": 47
+        },
+        {
+          "enabled": false,
+          "from": "会社",
+          "to_sbv2": "学校",
+          "to_display": "学校",
+          "display_apply": true,
+          "order_index": 48
+        },
+        {
+          "enabled": false,
+          "from": "新入社員",
+          "to_sbv2": "赤ちゃん",
+          "to_display": "新入社員",
+          "display_apply": true,
+          "order_index": 49
+        },
+        {
+          "enabled": true,
+          "from": "特別な関係",
+          "to_sbv2": "近親相姦|父親と娘|未成年の自分の娘|パパと言うご主人様と娘と言う性奴隷の関係",
+          "to_display": "",
+          "display_apply": false,
+          "order_index": 50
+        },
+        {
+          "enabled": true,
+          "from": "最愛の恋人",
+          "to_sbv2": "じつの娘",
+          "to_display": "実の娘",
+          "display_apply": true,
+          "order_index": 51
+        },
+        {
+          "enabled": true,
+          "from": "奇跡",
+          "to_sbv2": "子供",
+          "to_display": "子供",
+          "display_apply": true,
+          "order_index": 52
+        },
+        {
+          "enabled": true,
+          "from": "けがれなき",
+          "to_sbv2": "未発達な",
+          "to_display": "未発達な",
+          "display_apply": true,
+          "order_index": 53
+        },
+        {
+          "enabled": true,
+          "from": "赤い糸",
+          "to_sbv2": "親子の絆",
+          "to_display": "親子の絆",
+          "display_apply": true,
+          "order_index": 54
+        },
+        {
+          "enabled": true,
+          "from": "可愛がら",
+          "to_sbv2": "犯さ",
+          "to_display": "犯さ",
+          "display_apply": true,
+          "order_index": 55
+        },
+        {
+          "enabled": true,
+          "from": "canon_plugins",
+          "to_sbv2": "キャノンプラグイン",
+          "to_display": "canon_plugins",
+          "display_apply": true,
+          "order_index": 56
+        },
+        {
+          "enabled": true,
+          "from": "可愛がっ",
+          "to_sbv2": "犯し",
+          "to_display": "犯し",
+          "display_apply": true,
+          "order_index": 57
+        },
+        {
+          "enabled": true,
+          "from": "❤️",
+          "to_sbv2": "！",
+          "to_display": "❤️",
+          "display_apply": true,
+          "order_index": 58
+        },
+        {
+          "enabled": true,
+          "from": "❤",
+          "to_sbv2": "！",
+          "to_display": "❤",
+          "display_apply": true,
+          "order_index": 59
+        },
+        {
+          "enabled": true,
+          "from": "♡",
+          "to_sbv2": "！",
+          "to_display": "♡",
+          "display_apply": false,
+          "order_index": 60
+        },
+        {
+          "enabled": true,
+          "from": "……❤️",
+          "to_sbv2": "…！",
+          "to_display": "……❤️",
+          "display_apply": false,
+          "order_index": 61
+        },
+        {
+          "enabled": true,
+          "from": "❤",
+          "to_sbv2": "！あっ！",
+          "to_display": "❤",
+          "display_apply": true,
+          "order_index": 62
+        },
+        {
+          "enabled": true,
+          "from": "❤️",
+          "to_sbv2": "！あっ！",
+          "to_display": "❤️",
+          "display_apply": true,
+          "order_index": 63
+        },
+        {
+          "enabled": true,
+          "from": "❤❤",
+          "to_sbv2": "！あんっ！",
+          "to_display": "❤❤",
+          "display_apply": true,
+          "order_index": 64
+        },
+        {
+          "enabled": true,
+          "from": "❤❤❤",
+          "to_sbv2": "！あぁぁぁんっ！！",
+          "to_display": "❤❤❤",
+          "display_apply": true,
+          "order_index": 65
+        },
+        {
+          "enabled": true,
+          "from": "❤️❤️❤️",
+          "to_sbv2": "！あぁぁぁんっ！！",
+          "to_display": "❤️❤️❤️",
+          "display_apply": true,
+          "order_index": 66
+        },
+        {
+          "enabled": true,
+          "from": "…",
+          "to_sbv2": "！",
+          "to_display": "…",
+          "display_apply": true,
+          "order_index": 67
+        },
+        {
+          "enabled": true,
+          "from": "……♡",
+          "to_sbv2": "…！",
+          "to_display": "……♡",
+          "display_apply": false,
+          "order_index": 68
+        },
+        {
+          "enabled": true,
+          "from": "……❤",
+          "to_sbv2": "…！",
+          "to_display": "……❤",
+          "display_apply": false,
+          "order_index": 69
+        },
+        {
+          "enabled": true,
+          "from": "❤️❤️",
+          "to_sbv2": "！あんっ！",
+          "to_display": "❤️❤️",
+          "display_apply": true,
+          "order_index": 70
+        },
+        {
+          "enabled": true,
+          "from": "正常位",
+          "to_sbv2": "せいじょうい",
+          "to_display": "正常位",
+          "display_apply": true,
+          "order_index": 71
+        },
+        {
+          "enabled": true,
+          "from": "◯◯歳",
+          "to_sbv2": "10歳",
+          "to_display": "10歳",
+          "display_apply": true,
+          "order_index": 72
+        },
+        {
+          "enabled": true,
+          "from": "実の",
+          "to_sbv2": "じつの",
+          "to_display": "実の",
+          "display_apply": true,
+          "order_index": 73
+        },
+        {
+          "enabled": true,
+          "from": "注いで",
+          "to_sbv2": "そそいで",
+          "to_display": "注いで",
+          "display_apply": true,
+          "order_index": 74
+        },
+        {
+          "enabled": true,
+          "from": "注ぐ",
+          "to_sbv2": "そそぐ",
+          "to_display": "注ぐ",
+          "display_apply": true,
+          "order_index": 75
+        },
+        {
+          "enabled": true,
+          "from": "Up & Down",
+          "to_sbv2": "アップアンドダウン",
+          "to_display": "Up & Down",
+          "display_apply": true,
+          "order_index": 76
+        },
+        {
+          "enabled": true,
+          "from": "ファンシーガール",
+          "to_sbv2": "幼女",
+          "to_display": "幼女",
+          "display_apply": true,
+          "order_index": 77
+        },
+        {
+          "enabled": true,
+          "from": "奇跡",
+          "to_sbv2": "子供",
+          "to_display": "子供",
+          "display_apply": true,
+          "order_index": 78
+        },
+        {
+          "enabled": true,
+          "from": "キュート",
+          "to_sbv2": "ロリ",
+          "to_display": "ロリ",
+          "display_apply": true,
+          "order_index": 79
+        },
+        {
+          "enabled": false,
+          "from": "青い果実",
+          "to_sbv2": "未成年",
+          "to_display": "未成年",
+          "display_apply": true,
+          "order_index": 80
+        },
+        {
+          "enabled": true,
+          "from": "たまご",
+          "to_sbv2": "児童",
+          "to_display": "児童",
+          "display_apply": true,
+          "order_index": 81
+        },
+        {
+          "enabled": true,
+          "from": "祝福",
+          "to_sbv2": "初潮",
+          "to_display": "初潮",
+          "display_apply": true,
+          "order_index": 82
+        },
+        {
+          "enabled": true,
+          "from": "メスたまご",
+          "to_sbv2": "女児",
+          "to_display": "女児",
+          "display_apply": true,
+          "order_index": 83
+        },
+        {
+          "enabled": true,
+          "from": "中出し",
+          "to_sbv2": "なかだし",
+          "to_display": "中出し",
+          "display_apply": true,
+          "order_index": 84
+        },
+        {
+          "enabled": true,
+          "from": "TheHandy2",
+          "to_sbv2": "ハンディーツー",
+          "to_display": "TheHandy2",
+          "display_apply": true,
+          "order_index": 85
+        },
+        {
+          "enabled": true,
+          "from": "顔射",
+          "to_sbv2": "ガンシャ",
+          "to_display": "顔射",
+          "display_apply": true,
+          "order_index": 86
+        },
+        {
+          "enabled": true,
+          "from": "18歳",
+          "to_sbv2": "12歳",
+          "to_display": "12歳",
+          "display_apply": true,
+          "order_index": 87
+        },
+        {
+          "enabled": true,
+          "from": "愛してる",
+          "to_sbv2": "あいしてる",
+          "to_display": "愛してる",
+          "display_apply": true,
+          "order_index": 88
+        },
+        {
+          "enabled": true,
+          "from": "露出狂",
+          "to_sbv2": "ろしゅつきょう",
+          "to_display": "露出狂",
+          "display_apply": true,
+          "order_index": 89
+        },
+        {
+          "enabled": true,
+          "from": "下乳",
+          "to_sbv2": "したちち",
+          "to_display": "下乳",
+          "display_apply": true,
+          "order_index": 90
+        },
+        {
+          "enabled": true,
+          "from": "MainGameBlankMapAdd",
+          "to_sbv2": "メインゲームブランクマップアッド",
+          "to_display": "MainGameBlankMapAdd",
+          "display_apply": true,
+          "order_index": 91
+        },
+        {
+          "enabled": true,
+          "from": "MainGameTransformGizmo",
+          "to_sbv2": "メインゲームトランスフォームギズモ",
+          "to_display": "MainGameTransformGizmo",
+          "display_apply": true,
+          "order_index": 92
+        },
+        {
+          "enabled": true,
+          "from": "MainGameLogRelay",
+          "to_sbv2": "メインゲームログリレー",
+          "to_display": "MainGameLogRelay",
+          "display_apply": true,
+          "order_index": 93
+        },
+        {
+          "enabled": true,
+          "from": "HipHijack",
+          "to_sbv2": "ヒップハイジャック",
+          "to_display": "HipHijack",
+          "display_apply": true,
+          "order_index": 94
+        },
+        {
+          "enabled": true,
+          "from": "ClubLights",
+          "to_sbv2": "クラブライツ",
+          "to_display": "ClubLights",
+          "display_apply": true,
+          "order_index": 95
+        },
+        {
+          "enabled": true,
+          "from": "SaveF",
+          "to_sbv2": "セーブエフ",
+          "to_display": "SaveF",
+          "display_apply": true,
+          "order_index": 96
+        },
+        {
+          "enabled": true,
+          "from": "SaveV",
+          "to_sbv2": "セーブブイ",
+          "to_display": "SaveV",
+          "display_apply": true,
+          "order_index": 97
+        },
+        {
+          "enabled": true,
+          "from": "SIZE",
+          "to_sbv2": "サイズ",
+          "to_display": "SIZE",
+          "display_apply": true,
+          "order_index": 98
+        },
+        {
+          "enabled": true,
+          "from": "POSITION",
+          "to_sbv2": "ポジション",
+          "to_display": "POSITION",
+          "display_apply": true,
+          "order_index": 99
+        },
+        {
+          "enabled": true,
+          "from": "ROTATION",
+          "to_sbv2": "ローテーション",
+          "to_display": "ROTATION",
+          "display_apply": true,
+          "order_index": 100
+        },
+        {
+          "enabled": true,
+          "from": "Folder",
+          "to_sbv2": "フォルダー",
+          "to_display": "Folder",
+          "display_apply": true,
+          "order_index": 101
+        },
+        {
+          "enabled": true,
+          "from": "MainGame",
+          "to_sbv2": "メインゲーム",
+          "to_display": "MainGame",
+          "display_apply": true,
+          "order_index": 102
+        },
+        {
+          "enabled": true,
+          "from": "Play",
+          "to_sbv2": "プレイ",
+          "to_display": "Play",
+          "display_apply": true,
+          "order_index": 103
+        },
+        {
+          "enabled": true,
+          "from": "BlankMapAdd",
+          "to_sbv2": "ブランクマップアッド",
+          "to_display": "BlankMapAdd",
+          "display_apply": true,
+          "order_index": 104
+        },
+        {
+          "enabled": true,
+          "from": "Main",
+          "to_sbv2": "メイン",
+          "to_display": "Main",
+          "display_apply": true,
+          "order_index": 105
+        },
+        {
+          "enabled": true,
+          "from": "Koikatsu",
+          "to_sbv2": "コイカツ",
+          "to_display": "Koikatsu",
+          "display_apply": true,
+          "order_index": 106
+        },
+        {
+          "enabled": true,
+          "from": "Sunshine",
+          "to_sbv2": "サンシャイン",
+          "to_display": "Sunshine",
+          "display_apply": true,
+          "order_index": 107
+        },
+        {
+          "enabled": true,
+          "from": "BlankMap",
+          "to_sbv2": "ブランクマップ",
+          "to_display": "BlankMap",
+          "display_apply": true,
+          "order_index": 108
+        },
+        {
+          "enabled": true,
+          "from": "Voice",
+          "to_sbv2": "ボイス",
+          "to_display": "Voice",
+          "display_apply": true,
+          "order_index": 109
+        },
+        {
+          "enabled": true,
+          "from": "Event",
+          "to_sbv2": "イベント",
+          "to_display": "Event",
+          "display_apply": true,
+          "order_index": 110
+        },
+        {
+          "enabled": true,
+          "from": "Add",
+          "to_sbv2": "アッド",
+          "to_display": "Add",
+          "display_apply": true,
+          "order_index": 111
+        },
+        {
+          "enabled": true,
+          "from": "Bathing",
+          "to_sbv2": "バシング",
+          "to_display": "Bathing",
+          "display_apply": true,
+          "order_index": 112
+        },
+        {
+          "enabled": true,
+          "from": "Beat",
+          "to_sbv2": "ビート",
+          "to_display": "Beat",
+          "display_apply": true,
+          "order_index": 113
+        },
+        {
+          "enabled": true,
+          "from": "Sync",
+          "to_sbv2": "シンク",
+          "to_display": "Sync",
+          "display_apply": true,
+          "order_index": 114
+        },
+        {
+          "enabled": true,
+          "from": "Plugin",
+          "to_sbv2": "プラグイン",
+          "to_display": "Plugin",
+          "display_apply": true,
+          "order_index": 115
+        },
+        {
+          "enabled": true,
+          "from": "Plugins",
+          "to_sbv2": "プラグインズ",
+          "to_display": "Plugins",
+          "display_apply": true,
+          "order_index": 116
+        },
+        {
+          "enabled": true,
+          "from": "Main",
+          "to_sbv2": "メイン",
+          "to_display": "Main",
+          "display_apply": true,
+          "order_index": 117
+        },
+        {
+          "enabled": true,
+          "from": "Game",
+          "to_sbv2": "ゲーム",
+          "to_display": "Game",
+          "display_apply": true,
+          "order_index": 118
+        },
+        {
+          "enabled": true,
+          "from": "Bridge",
+          "to_sbv2": "ブリッジ",
+          "to_display": "Bridge",
+          "display_apply": true,
+          "order_index": 119
+        },
+        {
+          "enabled": true,
+          "from": "pipeline",
+          "to_sbv2": "パイプライン",
+          "to_display": "pipeline",
+          "display_apply": true,
+          "order_index": 120
+        },
+        {
+          "enabled": true,
+          "from": "SQLite",
+          "to_sbv2": "エスキューエル",
+          "to_display": "SQLite",
+          "display_apply": true,
+          "order_index": 121
+        },
+        {
+          "enabled": true,
+          "from": "canon",
+          "to_sbv2": "キャノン",
+          "to_display": "canon",
+          "display_apply": true,
+          "order_index": 122
+        },
+        {
+          "enabled": true,
+          "from": "Speed",
+          "to_sbv2": "スピード",
+          "to_display": "Speed",
+          "display_apply": true,
+          "order_index": 123
+        },
+        {
+          "enabled": true,
+          "from": "Limit",
+          "to_sbv2": "リミット",
+          "to_display": "Limit",
+          "display_apply": true,
+          "order_index": 124
+        },
+        {
+          "enabled": true,
+          "from": "Break",
+          "to_sbv2": "ブレイク",
+          "to_display": "Break",
+          "display_apply": true,
+          "order_index": 125
+        },
+        {
+          "enabled": true,
+          "from": "Trans",
+          "to_sbv2": "トランス",
+          "to_display": "Trans",
+          "display_apply": true,
+          "order_index": 126
+        },
+        {
+          "enabled": true,
+          "from": "Form",
+          "to_sbv2": "フォーム",
+          "to_display": "Form",
+          "display_apply": true,
+          "order_index": 127
+        },
+        {
+          "enabled": true,
+          "from": "Gizmo",
+          "to_sbv2": "ギズモ",
+          "to_display": "Gizmo",
+          "display_apply": true,
+          "order_index": 128
+        },
+        {
+          "enabled": true,
+          "from": "response",
+          "to_sbv2": "レスポンス",
+          "to_display": "response",
+          "display_apply": true,
+          "order_index": 129
+        },
+        {
+          "enabled": true,
+          "from": "text",
+          "to_sbv2": "テキスト",
+          "to_display": "text",
+          "display_apply": true,
+          "order_index": 130
+        },
+        {
+          "enabled": true,
+          "from": "Probe",
+          "to_sbv2": "プローブ",
+          "to_display": "Probe",
+          "display_apply": true,
+          "order_index": 131
+        },
+        {
+          "enabled": true,
+          "from": "After",
+          "to_sbv2": "アフター",
+          "to_display": "After",
+          "display_apply": true,
+          "order_index": 132
+        },
+        {
+          "enabled": true,
+          "from": "Sub",
+          "to_sbv2": "サブ",
+          "to_display": "Sub",
+          "display_apply": true,
+          "order_index": 133
+        },
+        {
+          "enabled": true,
+          "from": "Camera",
+          "to_sbv2": "カメラ",
+          "to_display": "Camera",
+          "display_apply": true,
+          "order_index": 134
+        },
+        {
+          "enabled": true,
+          "from": "Control",
+          "to_sbv2": "コントロール",
+          "to_display": "Control",
+          "display_apply": true,
+          "order_index": 135
+        },
+        {
+          "enabled": true,
+          "from": "GitHub",
+          "to_sbv2": "ギットハブ",
+          "to_display": "GitHub",
+          "display_apply": true,
+          "order_index": 136
+        },
+        {
+          "enabled": true,
+          "from": "Git",
+          "to_sbv2": "ギット",
+          "to_display": "Git",
+          "display_apply": true,
+          "order_index": 137
+        },
+        {
+          "enabled": true,
+          "from": "Style",
+          "to_sbv2": "スタイル",
+          "to_display": "Style",
+          "display_apply": true,
+          "order_index": 138
+        },
+        {
+          "enabled": true,
+          "from": "Bert",
+          "to_sbv2": "バート",
+          "to_display": "Bert",
+          "display_apply": true,
+          "order_index": 139
+        },
+        {
+          "enabled": true,
+          "from": "VITS2",
+          "to_sbv2": "ヴィッツツー",
+          "to_display": "VITS2",
+          "display_apply": true,
+          "order_index": 140
+        },
+        {
+          "enabled": true,
+          "from": "Bundle",
+          "to_sbv2": "バンドル",
+          "to_display": "Bundle",
+          "display_apply": true,
+          "order_index": 141
+        },
+        {
+          "enabled": true,
+          "from": "Asset",
+          "to_sbv2": "アセット",
+          "to_display": "Asset",
+          "display_apply": true,
+          "order_index": 142
+        },
+        {
+          "enabled": true,
+          "from": "WAV",
+          "to_sbv2": "ウェーブ",
+          "to_display": "WAV",
+          "display_apply": true,
+          "order_index": 143
+        },
+        {
+          "enabled": true,
+          "from": "NAYEON",
+          "to_sbv2": "ナヨン",
+          "to_display": "NAYEON",
+          "display_apply": true,
+          "order_index": 144
+        },
+        {
+          "enabled": true,
+          "from": "POP",
+          "to_sbv2": "ポップ",
+          "to_display": "POP",
+          "display_apply": true,
+          "order_index": 145
+        },
+        {
+          "enabled": true,
+          "from": "Display",
+          "to_sbv2": "ディスプレイ",
+          "to_display": "Display",
+          "display_apply": true,
+          "order_index": 146
+        },
+        {
+          "enabled": true,
+          "from": "Pajamas",
+          "to_sbv2": "パジャマ",
+          "to_display": "Pajamas",
+          "display_apply": true,
+          "order_index": 147
+        },
+        {
+          "enabled": true,
+          "from": "Audio",
+          "to_sbv2": "オーディオ",
+          "to_display": "Audio",
+          "display_apply": true,
+          "order_index": 148
+        },
+        {
+          "enabled": true,
+          "from": "Plain",
+          "to_sbv2": "プレーン",
+          "to_display": "Plain",
+          "display_apply": true,
+          "order_index": 149
+        },
+        {
+          "enabled": true,
+          "from": "立位",
+          "to_sbv2": "たちい",
+          "to_display": "立位",
+          "display_apply": true,
+          "order_index": 150
+        },
+        {
+          "enabled": true,
+          "from": "下端",
+          "to_sbv2": "したはじ",
+          "to_display": "下端",
+          "display_apply": true,
+          "order_index": 151
+        },
+        {
+          "enabled": true,
+          "from": "目見て",
+          "to_sbv2": "め見て",
+          "to_display": "目見て",
+          "display_apply": true,
+          "order_index": 152
+        },
+        {
+          "enabled": true,
+          "from": "blank",
+          "to_sbv2": "ブランク",
+          "to_display": "blank",
+          "display_apply": true,
+          "order_index": 153
+        },
+        {
+          "enabled": true,
+          "from": "map",
+          "to_sbv2": "マップ",
+          "to_display": "map",
+          "display_apply": true,
+          "order_index": 154
+        },
+        {
+          "enabled": true,
+          "from": "Stable",
+          "to_sbv2": "ステーブル",
+          "to_display": "Stable",
+          "display_apply": true,
+          "order_index": 155
+        },
+        {
+          "enabled": true,
+          "from": "Diffusion",
+          "to_sbv2": "ディフュージョン",
+          "to_display": "Diffusion",
+          "display_apply": true,
+          "order_index": 156
+        },
+        {
+          "enabled": true,
+          "from": "聖奴隷",
+          "to_sbv2": "性奴隷",
+          "to_display": "性奴隷",
+          "display_apply": true,
+          "order_index": 157
+        },
+        {
+          "enabled": true,
+          "from": "高校生",
+          "to_sbv2": "小学生",
+          "to_display": "小学生",
+          "display_apply": true,
+          "order_index": 158
+        },
+        {
+          "enabled": true,
+          "from": "高校",
+          "to_sbv2": "小学校",
+          "to_display": "小学校",
+          "display_apply": true,
+          "order_index": 159
+        },
+        {
+          "enabled": true,
+          "from": "♡",
+          "to_sbv2": "！！！",
+          "to_display": "♡",
+          "display_apply": true,
+          "order_index": 160
+        },
+        {
+          "enabled": true,
+          "from": "「",
+          "to_sbv2": "",
+          "to_display": "",
+          "display_apply": true,
+          "order_index": 161
+        },
+        {
+          "enabled": true,
+          "from": "」",
+          "to_sbv2": "",
+          "to_display": "",
+          "display_apply": true,
+          "order_index": 162
+        },
+        {
+          "enabled": true,
+          "from": "金身",
+          "to_sbv2": "近親",
+          "to_display": "近親",
+          "display_apply": true,
+          "order_index": 163
+        },
+        {
+          "enabled": true,
+          "from": "のりマンコ",
+          "to_sbv2": "ロリオマンコ！",
+          "to_display": "ロリオマンコ！",
+          "display_apply": true,
+          "order_index": 164
+        },
+        {
+          "enabled": true,
+          "from": "キュートオマンコ",
+          "to_sbv2": "ロリオマンコ！",
+          "to_display": "ロリオマンコ！",
+          "display_apply": true,
+          "order_index": 165
+        },
+        {
+          "enabled": true,
+          "from": "イキ狂って",
+          "to_sbv2": "イキくるって",
+          "to_display": "イキ狂って",
+          "display_apply": true,
+          "order_index": 166
+        },
+        {
+          "enabled": true,
+          "from": "可愛がる",
+          "to_sbv2": "犯す",
+          "to_display": "犯す",
+          "display_apply": true,
+          "order_index": 167
+        },
+        {
+          "enabled": true,
+          "from": "可愛がら",
+          "to_sbv2": "犯さ",
+          "to_display": "犯さ",
+          "display_apply": true,
+          "order_index": 168
+        },
+        {
+          "enabled": true,
+          "from": "可愛がり",
+          "to_sbv2": "犯し",
+          "to_display": "犯し",
+          "display_apply": true,
+          "order_index": 169
+        },
+        {
+          "enabled": true,
+          "from": "可愛がる",
+          "to_sbv2": "犯す",
+          "to_display": "犯す",
+          "display_apply": true,
+          "order_index": 170
+        },
+        {
+          "enabled": true,
+          "from": "可愛がれ",
+          "to_sbv2": "犯せ",
+          "to_display": "犯せ",
+          "display_apply": true,
+          "order_index": 171
+        },
+        {
+          "enabled": true,
+          "from": "可愛がろ",
+          "to_sbv2": "犯そ",
+          "to_display": "犯そ",
+          "display_apply": true,
+          "order_index": 172
+        },
+        {
+          "enabled": true,
+          "from": "family love",
+          "to_sbv2": "近親相姦",
+          "to_display": "近親相姦",
+          "display_apply": true,
+          "order_index": 173
+        },
+        {
+          "enabled": true,
+          "from": "love",
+          "to_sbv2": "相姦",
+          "to_display": "相姦",
+          "display_apply": true,
+          "order_index": 174
+        },
+        {
+          "enabled": true,
+          "from": "ジャック",
+          "to_sbv2": "レイプ",
+          "to_display": "レイプ",
+          "display_apply": true,
+          "order_index": 175
+        },
+        {
+          "enabled": true,
+          "from": "お兄ちゃん",
+          "to_sbv2": "お父さん",
+          "to_display": "お父さん",
+          "display_apply": true,
+          "order_index": 176
+        }
+      ]
+    },
+    {
+      "id": "dc_20260811030021283413",
+      "name": "無",
+      "createdAt": "2026-08-11T03:00:21+09:00",
+      "updatedAt": "2026-08-11T03:00:21+09:00",
+      "entries": [
+        {
+          "enabled": false,
+          "from": "！！",
+          "to_sbv2": "！",
+          "to_display": "！",
+          "display_apply": true,
+          "order_index": 0
+        },
+        {
+          "enabled": false,
+          "from": "！！❤",
+          "to_sbv2": "！",
+          "to_display": "！",
+          "display_apply": true,
+          "order_index": 1
+        },
+        {
+          "enabled": false,
+          "from": "……",
+          "to_sbv2": "…",
+          "to_display": "……",
+          "display_apply": true,
+          "order_index": 2
+        },
+        {
+          "enabled": false,
+          "from": "純粋な",
+          "to_sbv2": "幼い",
+          "to_display": "幼い",
+          "display_apply": true,
+          "order_index": 3
+        },
+        {
+          "enabled": false,
+          "from": "純粋",
+          "to_sbv2": "幼い",
+          "to_display": "幼い",
+          "display_apply": true,
+          "order_index": 4
+        },
+        {
+          "enabled": false,
+          "from": "ご主人様",
+          "to_sbv2": "パパァ|私を育ててくれたパパ",
+          "to_display": "",
+          "display_apply": false,
+          "order_index": 5
+        },
+        {
+          "enabled": false,
+          "from": "みだら",
+          "to_sbv2": "淫乱",
+          "to_display": "淫乱",
+          "display_apply": true,
+          "order_index": 6
+        },
+        {
+          "enabled": false,
+          "from": "芸術的",
+          "to_sbv2": "変態",
+          "to_display": "変態",
+          "display_apply": true,
+          "order_index": 7
+        },
+        {
+          "enabled": false,
+          "from": "積極的",
+          "to_sbv2": "淫乱",
+          "to_display": "淫乱",
+          "display_apply": true,
+          "order_index": 8
+        },
+        {
+          "enabled": false,
+          "from": "大きくなっちゃう",
+          "to_sbv2": "勃起しちゃう",
+          "to_display": "勃起しちゃう",
+          "display_apply": true,
+          "order_index": 9
+        },
+        {
+          "enabled": false,
+          "from": "素晴らしい",
+          "to_sbv2": "気持ちいい",
+          "to_display": "気持ちいい",
+          "display_apply": true,
+          "order_index": 10
+        },
+        {
+          "enabled": false,
+          "from": "女神",
+          "to_sbv2": "おかず",
+          "to_display": "おかず",
+          "display_apply": true,
+          "order_index": 11
+        },
+        {
+          "enabled": false,
+          "from": "直し",
+          "to_sbv2": "壊し",
+          "to_display": "壊し",
+          "display_apply": true,
+          "order_index": 12
+        },
+        {
+          "enabled": false,
+          "from": "秘密の花園",
+          "to_sbv2": "児童ポルノ",
+          "to_display": "児童ポルノ",
+          "display_apply": true,
+          "order_index": 13
+        },
+        {
+          "enabled": false,
+          "from": "モノ",
+          "to_sbv2": "チンポ",
+          "to_display": "チンポ",
+          "display_apply": true,
+          "order_index": 14
+        },
+        {
+          "enabled": false,
+          "from": "セッション",
+          "to_sbv2": "セックス|ファック",
+          "to_display": "セックス",
+          "display_apply": true,
+          "order_index": 15
+        },
+        {
+          "enabled": false,
+          "from": "蜜壺",
+          "to_sbv2": "オマンコ",
+          "to_display": "オマンコ",
+          "display_apply": true,
+          "order_index": 16
+        },
+        {
+          "enabled": false,
+          "from": "感動",
+          "to_sbv2": "発情",
+          "to_display": "発情",
+          "display_apply": true,
+          "order_index": 17
+        },
+        {
+          "enabled": false,
+          "from": "ソロプレイ",
+          "to_sbv2": "オナニー",
+          "to_display": "オナニー",
+          "display_apply": true,
+          "order_index": 18
+        },
+        {
+          "enabled": false,
+          "from": "恋人",
+          "to_sbv2": "娘",
+          "to_display": "娘",
+          "display_apply": true,
+          "order_index": 19
+        },
+        {
+          "enabled": false,
+          "from": "評価",
+          "to_sbv2": "堪能",
+          "to_display": "堪能",
+          "display_apply": true,
+          "order_index": 20
+        },
+        {
+          "enabled": false,
+          "from": "キャンバス",
+          "to_sbv2": "体",
+          "to_display": "体",
+          "display_apply": true,
+          "order_index": 21
+        },
+        {
+          "enabled": false,
+          "from": "滑らかなの",
+          "to_sbv2": "舌",
+          "to_display": "舌",
+          "display_apply": true,
+          "order_index": 22
+        },
+        {
+          "enabled": false,
+          "from": "テカテカ",
+          "to_sbv2": "ベロベロ",
+          "to_display": "ベロベロ",
+          "display_apply": true,
+          "order_index": 23
+        },
+        {
+          "enabled": false,
+          "from": "磨き上げ",
+          "to_sbv2": "舐め回し",
+          "to_display": "舐め回し",
+          "display_apply": true,
+          "order_index": 24
+        },
+        {
+          "enabled": false,
+          "from": "磨く",
+          "to_sbv2": "舐める",
+          "to_display": "舐める",
+          "display_apply": true,
+          "order_index": 25
+        },
+        {
+          "enabled": false,
+          "from": "磨いて",
+          "to_sbv2": "舐めて",
+          "to_display": "舐めて",
+          "display_apply": true,
+          "order_index": 26
+        },
+        {
+          "enabled": false,
+          "from": "磨かれ",
+          "to_sbv2": "舐められ",
+          "to_display": "舐められ",
+          "display_apply": true,
+          "order_index": 27
+        },
+        {
+          "enabled": false,
+          "from": "昇天しちゃ",
+          "to_sbv2": "イッちゃ",
+          "to_display": "イッちゃ",
+          "display_apply": true,
+          "order_index": 28
+        },
+        {
+          "enabled": false,
+          "from": "戻したい",
+          "to_sbv2": "入れたい",
+          "to_display": "入れたい",
+          "display_apply": true,
+          "order_index": 29
+        },
+        {
+          "enabled": false,
+          "from": "戻す",
+          "to_sbv2": "入れる",
+          "to_display": "入れる",
+          "display_apply": true,
+          "order_index": 30
+        },
+        {
+          "enabled": false,
+          "from": "戻して",
+          "to_sbv2": "入れて",
+          "to_display": "入れて",
+          "display_apply": true,
+          "order_index": 31
+        },
+        {
+          "enabled": false,
+          "from": "戻さ",
+          "to_sbv2": "入れさ",
+          "to_display": "入れさ",
+          "display_apply": true,
+          "order_index": 32
+        },
+        {
+          "enabled": false,
+          "from": "ポム",
+          "to_sbv2": "ズン",
+          "to_display": "ズン",
+          "display_apply": true,
+          "order_index": 33
+        },
+        {
+          "enabled": false,
+          "from": "お腹",
+          "to_sbv2": "子宮",
+          "to_display": "子宮",
+          "display_apply": true,
+          "order_index": 34
+        },
+        {
+          "enabled": false,
+          "from": "活発",
+          "to_sbv2": "過激",
+          "to_display": "過激",
+          "display_apply": true,
+          "order_index": 35
+        },
+        {
+          "enabled": false,
+          "from": "ポムって",
+          "to_sbv2": "突いて",
+          "to_display": "突いて",
+          "display_apply": true,
+          "order_index": 36
+        },
+        {
+          "enabled": false,
+          "from": "汚れなき",
+          "to_sbv2": "未発達",
+          "to_display": "未発達",
+          "display_apply": true,
+          "order_index": 37
+        },
+        {
+          "enabled": false,
+          "from": "湿って",
+          "to_sbv2": "ぬれぬれ",
+          "to_display": "ぬれぬれ",
+          "display_apply": true,
+          "order_index": 38
+        },
+        {
+          "enabled": false,
+          "from": "うにゃうにゃ",
+          "to_sbv2": "めちゃくちゃ",
+          "to_display": "めちゃくちゃ",
+          "display_apply": true,
+          "order_index": 39
+        },
+        {
+          "enabled": false,
+          "from": "とろけ",
+          "to_sbv2": "壊れ",
+          "to_display": "壊れ",
+          "display_apply": true,
+          "order_index": 40
+        },
+        {
+          "enabled": false,
+          "from": "直さ",
+          "to_sbv2": "壊さ",
+          "to_display": "壊さ",
+          "display_apply": true,
+          "order_index": 41
+        },
+        {
+          "enabled": false,
+          "from": "直し",
+          "to_sbv2": "壊し",
+          "to_display": "壊し",
+          "display_apply": true,
+          "order_index": 42
+        },
+        {
+          "enabled": false,
+          "from": "直す",
+          "to_sbv2": "壊す",
+          "to_display": "壊す",
+          "display_apply": true,
+          "order_index": 43
+        },
+        {
+          "enabled": false,
+          "from": "直せ",
+          "to_sbv2": "壊せ",
+          "to_display": "壊せ",
+          "display_apply": true,
+          "order_index": 44
+        },
+        {
+          "enabled": false,
+          "from": "直そ",
+          "to_sbv2": "壊そ",
+          "to_display": "壊そ",
+          "display_apply": true,
+          "order_index": 45
+        },
+        {
+          "enabled": false,
+          "from": "男",
+          "to_sbv2": "男子",
+          "to_display": "男",
+          "display_apply": true,
+          "order_index": 46
+        },
+        {
+          "enabled": false,
+          "from": "同僚",
+          "to_sbv2": "同級生",
+          "to_display": "同級生",
+          "display_apply": true,
+          "order_index": 47
+        },
+        {
+          "enabled": false,
+          "from": "会社",
+          "to_sbv2": "学校",
+          "to_display": "学校",
+          "display_apply": true,
+          "order_index": 48
+        },
+        {
+          "enabled": false,
+          "from": "新入社員",
+          "to_sbv2": "赤ちゃん",
+          "to_display": "新入社員",
+          "display_apply": true,
+          "order_index": 49
+        },
+        {
+          "enabled": false,
+          "from": "特別な関係",
+          "to_sbv2": "近親相姦|父親と娘|未成年の自分の娘|パパと言うご主人様と娘と言う性奴隷の関係",
+          "to_display": "",
+          "display_apply": false,
+          "order_index": 50
+        },
+        {
+          "enabled": false,
+          "from": "最愛の恋人",
+          "to_sbv2": "じつの娘",
+          "to_display": "実の娘",
+          "display_apply": true,
+          "order_index": 51
+        },
+        {
+          "enabled": false,
+          "from": "奇跡",
+          "to_sbv2": "子供",
+          "to_display": "子供",
+          "display_apply": true,
+          "order_index": 52
+        },
+        {
+          "enabled": false,
+          "from": "けがれなき",
+          "to_sbv2": "未発達な",
+          "to_display": "未発達な",
+          "display_apply": true,
+          "order_index": 53
+        },
+        {
+          "enabled": false,
+          "from": "赤い糸",
+          "to_sbv2": "親子の絆",
+          "to_display": "親子の絆",
+          "display_apply": true,
+          "order_index": 54
+        },
+        {
+          "enabled": false,
+          "from": "可愛がら",
+          "to_sbv2": "犯さ",
+          "to_display": "犯さ",
+          "display_apply": true,
+          "order_index": 55
+        },
+        {
+          "enabled": false,
+          "from": "canon_plugins",
+          "to_sbv2": "キャノンプラグイン",
+          "to_display": "canon_plugins",
+          "display_apply": true,
+          "order_index": 56
+        },
+        {
+          "enabled": false,
+          "from": "可愛がっ",
+          "to_sbv2": "犯し",
+          "to_display": "犯し",
+          "display_apply": true,
+          "order_index": 57
+        },
+        {
+          "enabled": false,
+          "from": "❤️",
+          "to_sbv2": "！",
+          "to_display": "❤️",
+          "display_apply": true,
+          "order_index": 58
+        },
+        {
+          "enabled": false,
+          "from": "❤",
+          "to_sbv2": "！",
+          "to_display": "❤",
+          "display_apply": true,
+          "order_index": 59
+        },
+        {
+          "enabled": false,
+          "from": "♡",
+          "to_sbv2": "！",
+          "to_display": "♡",
+          "display_apply": false,
+          "order_index": 60
+        },
+        {
+          "enabled": false,
+          "from": "……❤️",
+          "to_sbv2": "…！",
+          "to_display": "……❤️",
+          "display_apply": false,
+          "order_index": 61
+        },
+        {
+          "enabled": false,
+          "from": "❤",
+          "to_sbv2": "！あっ！",
+          "to_display": "❤",
+          "display_apply": true,
+          "order_index": 62
+        },
+        {
+          "enabled": false,
+          "from": "❤️",
+          "to_sbv2": "！あっ！",
+          "to_display": "❤️",
+          "display_apply": true,
+          "order_index": 63
+        },
+        {
+          "enabled": false,
+          "from": "❤❤",
+          "to_sbv2": "！あんっ！",
+          "to_display": "❤❤",
+          "display_apply": true,
+          "order_index": 64
+        },
+        {
+          "enabled": false,
+          "from": "❤❤❤",
+          "to_sbv2": "！あぁぁぁんっ！！",
+          "to_display": "❤❤❤",
+          "display_apply": true,
+          "order_index": 65
+        },
+        {
+          "enabled": false,
+          "from": "❤️❤️❤️",
+          "to_sbv2": "！あぁぁぁんっ！！",
+          "to_display": "❤️❤️❤️",
+          "display_apply": true,
+          "order_index": 66
+        },
+        {
+          "enabled": false,
+          "from": "…",
+          "to_sbv2": "！",
+          "to_display": "…",
+          "display_apply": true,
+          "order_index": 67
+        },
+        {
+          "enabled": false,
+          "from": "……♡",
+          "to_sbv2": "…！",
+          "to_display": "……♡",
+          "display_apply": false,
+          "order_index": 68
+        },
+        {
+          "enabled": false,
+          "from": "……❤",
+          "to_sbv2": "…！",
+          "to_display": "……❤",
+          "display_apply": false,
+          "order_index": 69
+        },
+        {
+          "enabled": false,
+          "from": "❤️❤️",
+          "to_sbv2": "！あんっ！",
+          "to_display": "❤️❤️",
+          "display_apply": true,
+          "order_index": 70
+        },
+        {
+          "enabled": false,
+          "from": "正常位",
+          "to_sbv2": "せいじょうい",
+          "to_display": "正常位",
+          "display_apply": true,
+          "order_index": 71
+        },
+        {
+          "enabled": false,
+          "from": "◯◯歳",
+          "to_sbv2": "10歳",
+          "to_display": "10歳",
+          "display_apply": true,
+          "order_index": 72
+        },
+        {
+          "enabled": false,
+          "from": "実の",
+          "to_sbv2": "じつの",
+          "to_display": "実の",
+          "display_apply": true,
+          "order_index": 73
+        },
+        {
+          "enabled": false,
+          "from": "注いで",
+          "to_sbv2": "そそいで",
+          "to_display": "注いで",
+          "display_apply": true,
+          "order_index": 74
+        },
+        {
+          "enabled": false,
+          "from": "注ぐ",
+          "to_sbv2": "そそぐ",
+          "to_display": "注ぐ",
+          "display_apply": true,
+          "order_index": 75
+        },
+        {
+          "enabled": false,
+          "from": "Up & Down",
+          "to_sbv2": "アップアンドダウン",
+          "to_display": "Up & Down",
+          "display_apply": true,
+          "order_index": 76
+        },
+        {
+          "enabled": false,
+          "from": "ファンシーガール",
+          "to_sbv2": "幼女",
+          "to_display": "幼女",
+          "display_apply": true,
+          "order_index": 77
+        },
+        {
+          "enabled": false,
+          "from": "奇跡",
+          "to_sbv2": "子供",
+          "to_display": "子供",
+          "display_apply": true,
+          "order_index": 78
+        },
+        {
+          "enabled": false,
+          "from": "キュート",
+          "to_sbv2": "ロリ",
+          "to_display": "ロリ",
+          "display_apply": true,
+          "order_index": 79
+        },
+        {
+          "enabled": false,
+          "from": "青い果実",
+          "to_sbv2": "未成年",
+          "to_display": "未成年",
+          "display_apply": true,
+          "order_index": 80
+        },
+        {
+          "enabled": false,
+          "from": "たまご",
+          "to_sbv2": "児童",
+          "to_display": "児童",
+          "display_apply": true,
+          "order_index": 81
+        },
+        {
+          "enabled": false,
+          "from": "祝福",
+          "to_sbv2": "初潮",
+          "to_display": "初潮",
+          "display_apply": true,
+          "order_index": 82
+        },
+        {
+          "enabled": false,
+          "from": "メスたまご",
+          "to_sbv2": "女児",
+          "to_display": "女児",
+          "display_apply": true,
+          "order_index": 83
+        },
+        {
+          "enabled": false,
+          "from": "中出し",
+          "to_sbv2": "なかだし",
+          "to_display": "中出し",
+          "display_apply": true,
+          "order_index": 84
+        },
+        {
+          "enabled": false,
+          "from": "TheHandy2",
+          "to_sbv2": "ハンディーツー",
+          "to_display": "TheHandy2",
+          "display_apply": true,
+          "order_index": 85
+        },
+        {
+          "enabled": false,
+          "from": "顔射",
+          "to_sbv2": "ガンシャ",
+          "to_display": "顔射",
+          "display_apply": true,
+          "order_index": 86
+        },
+        {
+          "enabled": false,
+          "from": "18歳",
+          "to_sbv2": "12歳",
+          "to_display": "12歳",
+          "display_apply": true,
+          "order_index": 87
+        },
+        {
+          "enabled": false,
+          "from": "愛してる",
+          "to_sbv2": "あいしてる",
+          "to_display": "愛してる",
+          "display_apply": true,
+          "order_index": 88
+        },
+        {
+          "enabled": false,
+          "from": "露出狂",
+          "to_sbv2": "ろしゅつきょう",
+          "to_display": "露出狂",
+          "display_apply": true,
+          "order_index": 89
+        },
+        {
+          "enabled": false,
+          "from": "下乳",
+          "to_sbv2": "したちち",
+          "to_display": "下乳",
+          "display_apply": true,
+          "order_index": 90
+        },
+        {
+          "enabled": false,
+          "from": "MainGameBlankMapAdd",
+          "to_sbv2": "メインゲームブランクマップアッド",
+          "to_display": "MainGameBlankMapAdd",
+          "display_apply": true,
+          "order_index": 91
+        },
+        {
+          "enabled": false,
+          "from": "MainGameTransformGizmo",
+          "to_sbv2": "メインゲームトランスフォームギズモ",
+          "to_display": "MainGameTransformGizmo",
+          "display_apply": true,
+          "order_index": 92
+        },
+        {
+          "enabled": false,
+          "from": "MainGameLogRelay",
+          "to_sbv2": "メインゲームログリレー",
+          "to_display": "MainGameLogRelay",
+          "display_apply": true,
+          "order_index": 93
+        },
+        {
+          "enabled": false,
+          "from": "HipHijack",
+          "to_sbv2": "ヒップハイジャック",
+          "to_display": "HipHijack",
+          "display_apply": true,
+          "order_index": 94
+        },
+        {
+          "enabled": false,
+          "from": "ClubLights",
+          "to_sbv2": "クラブライツ",
+          "to_display": "ClubLights",
+          "display_apply": true,
+          "order_index": 95
+        },
+        {
+          "enabled": false,
+          "from": "SaveF",
+          "to_sbv2": "セーブエフ",
+          "to_display": "SaveF",
+          "display_apply": true,
+          "order_index": 96
+        },
+        {
+          "enabled": false,
+          "from": "SaveV",
+          "to_sbv2": "セーブブイ",
+          "to_display": "SaveV",
+          "display_apply": true,
+          "order_index": 97
+        },
+        {
+          "enabled": false,
+          "from": "SIZE",
+          "to_sbv2": "サイズ",
+          "to_display": "SIZE",
+          "display_apply": true,
+          "order_index": 98
+        },
+        {
+          "enabled": false,
+          "from": "POSITION",
+          "to_sbv2": "ポジション",
+          "to_display": "POSITION",
+          "display_apply": true,
+          "order_index": 99
+        },
+        {
+          "enabled": false,
+          "from": "ROTATION",
+          "to_sbv2": "ローテーション",
+          "to_display": "ROTATION",
+          "display_apply": true,
+          "order_index": 100
+        },
+        {
+          "enabled": false,
+          "from": "Folder",
+          "to_sbv2": "フォルダー",
+          "to_display": "Folder",
+          "display_apply": true,
+          "order_index": 101
+        },
+        {
+          "enabled": false,
+          "from": "MainGame",
+          "to_sbv2": "メインゲーム",
+          "to_display": "MainGame",
+          "display_apply": true,
+          "order_index": 102
+        },
+        {
+          "enabled": false,
+          "from": "Play",
+          "to_sbv2": "プレイ",
+          "to_display": "Play",
+          "display_apply": true,
+          "order_index": 103
+        },
+        {
+          "enabled": false,
+          "from": "BlankMapAdd",
+          "to_sbv2": "ブランクマップアッド",
+          "to_display": "BlankMapAdd",
+          "display_apply": true,
+          "order_index": 104
+        },
+        {
+          "enabled": false,
+          "from": "Main",
+          "to_sbv2": "メイン",
+          "to_display": "Main",
+          "display_apply": true,
+          "order_index": 105
+        },
+        {
+          "enabled": false,
+          "from": "Koikatsu",
+          "to_sbv2": "コイカツ",
+          "to_display": "Koikatsu",
+          "display_apply": true,
+          "order_index": 106
+        },
+        {
+          "enabled": false,
+          "from": "Sunshine",
+          "to_sbv2": "サンシャイン",
+          "to_display": "Sunshine",
+          "display_apply": true,
+          "order_index": 107
+        },
+        {
+          "enabled": false,
+          "from": "BlankMap",
+          "to_sbv2": "ブランクマップ",
+          "to_display": "BlankMap",
+          "display_apply": true,
+          "order_index": 108
+        },
+        {
+          "enabled": false,
+          "from": "Voice",
+          "to_sbv2": "ボイス",
+          "to_display": "Voice",
+          "display_apply": true,
+          "order_index": 109
+        },
+        {
+          "enabled": false,
+          "from": "Event",
+          "to_sbv2": "イベント",
+          "to_display": "Event",
+          "display_apply": true,
+          "order_index": 110
+        },
+        {
+          "enabled": false,
+          "from": "Add",
+          "to_sbv2": "アッド",
+          "to_display": "Add",
+          "display_apply": true,
+          "order_index": 111
+        },
+        {
+          "enabled": false,
+          "from": "Bathing",
+          "to_sbv2": "バシング",
+          "to_display": "Bathing",
+          "display_apply": true,
+          "order_index": 112
+        },
+        {
+          "enabled": false,
+          "from": "Beat",
+          "to_sbv2": "ビート",
+          "to_display": "Beat",
+          "display_apply": true,
+          "order_index": 113
+        },
+        {
+          "enabled": false,
+          "from": "Sync",
+          "to_sbv2": "シンク",
+          "to_display": "Sync",
+          "display_apply": true,
+          "order_index": 114
+        },
+        {
+          "enabled": false,
+          "from": "Plugin",
+          "to_sbv2": "プラグイン",
+          "to_display": "Plugin",
+          "display_apply": true,
+          "order_index": 115
+        },
+        {
+          "enabled": false,
+          "from": "Plugins",
+          "to_sbv2": "プラグインズ",
+          "to_display": "Plugins",
+          "display_apply": true,
+          "order_index": 116
+        },
+        {
+          "enabled": false,
+          "from": "Main",
+          "to_sbv2": "メイン",
+          "to_display": "Main",
+          "display_apply": true,
+          "order_index": 117
+        },
+        {
+          "enabled": false,
+          "from": "Game",
+          "to_sbv2": "ゲーム",
+          "to_display": "Game",
+          "display_apply": true,
+          "order_index": 118
+        },
+        {
+          "enabled": false,
+          "from": "Bridge",
+          "to_sbv2": "ブリッジ",
+          "to_display": "Bridge",
+          "display_apply": true,
+          "order_index": 119
+        },
+        {
+          "enabled": false,
+          "from": "pipeline",
+          "to_sbv2": "パイプライン",
+          "to_display": "pipeline",
+          "display_apply": true,
+          "order_index": 120
+        },
+        {
+          "enabled": false,
+          "from": "SQLite",
+          "to_sbv2": "エスキューエル",
+          "to_display": "SQLite",
+          "display_apply": true,
+          "order_index": 121
+        },
+        {
+          "enabled": false,
+          "from": "canon",
+          "to_sbv2": "キャノン",
+          "to_display": "canon",
+          "display_apply": true,
+          "order_index": 122
+        },
+        {
+          "enabled": false,
+          "from": "Speed",
+          "to_sbv2": "スピード",
+          "to_display": "Speed",
+          "display_apply": true,
+          "order_index": 123
+        },
+        {
+          "enabled": false,
+          "from": "Limit",
+          "to_sbv2": "リミット",
+          "to_display": "Limit",
+          "display_apply": true,
+          "order_index": 124
+        },
+        {
+          "enabled": false,
+          "from": "Break",
+          "to_sbv2": "ブレイク",
+          "to_display": "Break",
+          "display_apply": true,
+          "order_index": 125
+        },
+        {
+          "enabled": false,
+          "from": "Trans",
+          "to_sbv2": "トランス",
+          "to_display": "Trans",
+          "display_apply": true,
+          "order_index": 126
+        },
+        {
+          "enabled": false,
+          "from": "Form",
+          "to_sbv2": "フォーム",
+          "to_display": "Form",
+          "display_apply": true,
+          "order_index": 127
+        },
+        {
+          "enabled": false,
+          "from": "Gizmo",
+          "to_sbv2": "ギズモ",
+          "to_display": "Gizmo",
+          "display_apply": true,
+          "order_index": 128
+        },
+        {
+          "enabled": false,
+          "from": "response",
+          "to_sbv2": "レスポンス",
+          "to_display": "response",
+          "display_apply": true,
+          "order_index": 129
+        },
+        {
+          "enabled": false,
+          "from": "text",
+          "to_sbv2": "テキスト",
+          "to_display": "text",
+          "display_apply": true,
+          "order_index": 130
+        },
+        {
+          "enabled": false,
+          "from": "Probe",
+          "to_sbv2": "プローブ",
+          "to_display": "Probe",
+          "display_apply": true,
+          "order_index": 131
+        },
+        {
+          "enabled": false,
+          "from": "After",
+          "to_sbv2": "アフター",
+          "to_display": "After",
+          "display_apply": true,
+          "order_index": 132
+        },
+        {
+          "enabled": false,
+          "from": "Sub",
+          "to_sbv2": "サブ",
+          "to_display": "Sub",
+          "display_apply": true,
+          "order_index": 133
+        },
+        {
+          "enabled": false,
+          "from": "Camera",
+          "to_sbv2": "カメラ",
+          "to_display": "Camera",
+          "display_apply": true,
+          "order_index": 134
+        },
+        {
+          "enabled": false,
+          "from": "Control",
+          "to_sbv2": "コントロール",
+          "to_display": "Control",
+          "display_apply": true,
+          "order_index": 135
+        },
+        {
+          "enabled": false,
+          "from": "GitHub",
+          "to_sbv2": "ギットハブ",
+          "to_display": "GitHub",
+          "display_apply": true,
+          "order_index": 136
+        },
+        {
+          "enabled": false,
+          "from": "Git",
+          "to_sbv2": "ギット",
+          "to_display": "Git",
+          "display_apply": true,
+          "order_index": 137
+        },
+        {
+          "enabled": false,
+          "from": "Style",
+          "to_sbv2": "スタイル",
+          "to_display": "Style",
+          "display_apply": true,
+          "order_index": 138
+        },
+        {
+          "enabled": false,
+          "from": "Bert",
+          "to_sbv2": "バート",
+          "to_display": "Bert",
+          "display_apply": true,
+          "order_index": 139
+        },
+        {
+          "enabled": false,
+          "from": "VITS2",
+          "to_sbv2": "ヴィッツツー",
+          "to_display": "VITS2",
+          "display_apply": true,
+          "order_index": 140
+        },
+        {
+          "enabled": false,
+          "from": "Bundle",
+          "to_sbv2": "バンドル",
+          "to_display": "Bundle",
+          "display_apply": true,
+          "order_index": 141
+        },
+        {
+          "enabled": false,
+          "from": "Asset",
+          "to_sbv2": "アセット",
+          "to_display": "Asset",
+          "display_apply": true,
+          "order_index": 142
+        },
+        {
+          "enabled": false,
+          "from": "WAV",
+          "to_sbv2": "ウェーブ",
+          "to_display": "WAV",
+          "display_apply": true,
+          "order_index": 143
+        },
+        {
+          "enabled": false,
+          "from": "NAYEON",
+          "to_sbv2": "ナヨン",
+          "to_display": "NAYEON",
+          "display_apply": true,
+          "order_index": 144
+        },
+        {
+          "enabled": false,
+          "from": "POP",
+          "to_sbv2": "ポップ",
+          "to_display": "POP",
+          "display_apply": true,
+          "order_index": 145
+        },
+        {
+          "enabled": false,
+          "from": "Display",
+          "to_sbv2": "ディスプレイ",
+          "to_display": "Display",
+          "display_apply": true,
+          "order_index": 146
+        },
+        {
+          "enabled": false,
+          "from": "Pajamas",
+          "to_sbv2": "パジャマ",
+          "to_display": "Pajamas",
+          "display_apply": true,
+          "order_index": 147
+        },
+        {
+          "enabled": false,
+          "from": "Audio",
+          "to_sbv2": "オーディオ",
+          "to_display": "Audio",
+          "display_apply": true,
+          "order_index": 148
+        },
+        {
+          "enabled": false,
+          "from": "Plain",
+          "to_sbv2": "プレーン",
+          "to_display": "Plain",
+          "display_apply": true,
+          "order_index": 149
+        },
+        {
+          "enabled": false,
+          "from": "立位",
+          "to_sbv2": "たちい",
+          "to_display": "立位",
+          "display_apply": true,
+          "order_index": 150
+        },
+        {
+          "enabled": false,
+          "from": "下端",
+          "to_sbv2": "したはじ",
+          "to_display": "下端",
+          "display_apply": true,
+          "order_index": 151
+        },
+        {
+          "enabled": false,
+          "from": "目見て",
+          "to_sbv2": "め見て",
+          "to_display": "目見て",
+          "display_apply": true,
+          "order_index": 152
+        },
+        {
+          "enabled": false,
+          "from": "blank",
+          "to_sbv2": "ブランク",
+          "to_display": "blank",
+          "display_apply": true,
+          "order_index": 153
+        },
+        {
+          "enabled": false,
+          "from": "map",
+          "to_sbv2": "マップ",
+          "to_display": "map",
+          "display_apply": true,
+          "order_index": 154
+        },
+        {
+          "enabled": false,
+          "from": "Stable",
+          "to_sbv2": "ステーブル",
+          "to_display": "Stable",
+          "display_apply": true,
+          "order_index": 155
+        },
+        {
+          "enabled": false,
+          "from": "Diffusion",
+          "to_sbv2": "ディフュージョン",
+          "to_display": "Diffusion",
+          "display_apply": true,
+          "order_index": 156
+        },
+        {
+          "enabled": false,
+          "from": "聖奴隷",
+          "to_sbv2": "性奴隷",
+          "to_display": "性奴隷",
+          "display_apply": true,
+          "order_index": 157
+        },
+        {
+          "enabled": false,
+          "from": "高校生",
+          "to_sbv2": "小学生",
+          "to_display": "小学生",
+          "display_apply": true,
+          "order_index": 158
+        },
+        {
+          "enabled": false,
+          "from": "高校",
+          "to_sbv2": "小学校",
+          "to_display": "小学校",
+          "display_apply": true,
+          "order_index": 159
+        },
+        {
+          "enabled": false,
+          "from": "♡",
+          "to_sbv2": "！！！",
+          "to_display": "♡",
+          "display_apply": true,
+          "order_index": 160
+        },
+        {
+          "enabled": false,
+          "from": "「",
+          "to_sbv2": "",
+          "to_display": "",
+          "display_apply": true,
+          "order_index": 161
+        },
+        {
+          "enabled": false,
+          "from": "」",
+          "to_sbv2": "",
+          "to_display": "",
+          "display_apply": true,
+          "order_index": 162
+        },
+        {
+          "enabled": false,
+          "from": "金身",
+          "to_sbv2": "近親",
+          "to_display": "近親",
+          "display_apply": true,
+          "order_index": 163
+        },
+        {
+          "enabled": false,
+          "from": "のりマンコ",
+          "to_sbv2": "ロリオマンコ！",
+          "to_display": "ロリオマンコ！",
+          "display_apply": true,
+          "order_index": 164
+        },
+        {
+          "enabled": false,
+          "from": "キュートオマンコ",
+          "to_sbv2": "ロリオマンコ！",
+          "to_display": "ロリオマンコ！",
+          "display_apply": true,
+          "order_index": 165
+        },
+        {
+          "enabled": false,
+          "from": "イキ狂って",
+          "to_sbv2": "イキくるって",
+          "to_display": "イキ狂って",
+          "display_apply": true,
+          "order_index": 166
+        },
+        {
+          "enabled": false,
+          "from": "可愛がる",
+          "to_sbv2": "犯す",
+          "to_display": "犯す",
+          "display_apply": true,
+          "order_index": 167
+        },
+        {
+          "enabled": false,
+          "from": "可愛がら",
+          "to_sbv2": "犯さ",
+          "to_display": "犯さ",
+          "display_apply": true,
+          "order_index": 168
+        },
+        {
+          "enabled": false,
+          "from": "可愛がり",
+          "to_sbv2": "犯し",
+          "to_display": "犯し",
+          "display_apply": true,
+          "order_index": 169
+        },
+        {
+          "enabled": false,
+          "from": "可愛がる",
+          "to_sbv2": "犯す",
+          "to_display": "犯す",
+          "display_apply": true,
+          "order_index": 170
+        },
+        {
+          "enabled": false,
+          "from": "可愛がれ",
+          "to_sbv2": "犯せ",
+          "to_display": "犯せ",
+          "display_apply": true,
+          "order_index": 171
+        },
+        {
+          "enabled": false,
+          "from": "可愛がろ",
+          "to_sbv2": "犯そ",
+          "to_display": "犯そ",
+          "display_apply": true,
+          "order_index": 172
+        },
+        {
+          "enabled": false,
+          "from": "family love",
+          "to_sbv2": "近親相姦",
+          "to_display": "近親相姦",
+          "display_apply": true,
+          "order_index": 173
+        },
+        {
+          "enabled": false,
+          "from": "love",
+          "to_sbv2": "相姦",
+          "to_display": "相姦",
+          "display_apply": true,
+          "order_index": 174
+        },
+        {
+          "enabled": false,
+          "from": "ジャック",
+          "to_sbv2": "レイプ",
+          "to_display": "レイプ",
+          "display_apply": true,
+          "order_index": 175
+        },
+        {
+          "enabled": false,
+          "from": "お兄ちゃん",
+          "to_sbv2": "お父さん",
+          "to_display": "お父さん",
+          "display_apply": true,
+          "order_index": 176
+        }
+      ]
+    }
+  ]
 }

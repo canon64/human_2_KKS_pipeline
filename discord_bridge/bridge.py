@@ -650,7 +650,8 @@ class VoiceBridge:
 
             # 送信後に結合ファイルを消す。元の parts/line_*.wav は
             # ゲーム側の再生に使うので触らない。消すのは外部送信用に作った1本だけ。
-            if sent and p.name == "joined_for_external.wav":
+            # 拡張子は mp3（変換成功時）か wav（ffmpeg が無いときのフォールバック）。
+            if sent and p.stem == "joined_for_external":
                 try:
                     p.unlink(missing_ok=True)
                     self.log(f"[reply] 結合ファイルを消した: {p.name}")

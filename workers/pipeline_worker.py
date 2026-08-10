@@ -452,12 +452,79 @@ class PipelineWorker(QObject):
             slot["result"] = result
             slot["event"].set()
 
+    # Discord の添付上限（Nitro/ブースト無しのサーバーは 10MB）。
+    # 無圧縮 WAV の結合は長い返答だと簡単に超えるので、mp3 へ落としてから送る。
+    _EXTERNAL_AUDIO_MP3_BITRATE = "48k"
+
+    def _find_ffmpeg(self) -> str:
+        """
+        mp3 変換に使う ffmpeg を探す。見つからなければ空文字。
+
+        PATH を先に見て、無ければ canon_plugins に同梱されている方を使う。
+        """
+        found = shutil.which("ffmpeg")
+        if found:
+            return found
+
+        bundled = Path(
+            r"F:\kks\BepInEx\plugins\canon_plugins\_tools\ffmpeg\bin\ffmpeg.exe"
+        )
+        if bundled.exists():
+            return str(bundled)
+        return ""
+
+    def _encode_wav_to_mp3(self, wav_path: Path) -> str:
+        """
+        結合済み WAV を mp3 へ変換する。成功したら mp3 のパス、失敗したら空文字。
+
+        読み上げ音声なので mono / 低ビットレートで十分。17MB 級が 1MB 未満になる。
+        """
+        mp3_path = wav_path.with_suffix(".mp3")
+        if mp3_path.exists():
+            return str(mp3_path)
+
+        ffmpeg = self._find_ffmpeg()
+        if not ffmpeg:
+            self.log.emit("[ask] ffmpeg が見つからないので WAV のまま返す")
+            return ""
+
+        try:
+            proc = subprocess.run(
+                [
+                    ffmpeg, "-y", "-loglevel", "error",
+                    "-i", str(wav_path),
+                    "-ac", "1",
+                    "-b:a", self._EXTERNAL_AUDIO_MP3_BITRATE,
+                    str(mp3_path),
+                ],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                env=_with_utf8_env(),
+                timeout=120,
+            )
+        except Exception as exc:
+            self.log.emit(f"[ask] mp3変換に失敗: {exc}")
+            return ""
+
+        if proc.returncode != 0 or not mp3_path.exists():
+            self.log.emit(
+                f"[ask] mp3変換に失敗 rc={proc.returncode} {(proc.stdout or '').strip()[:200]}"
+            )
+            return ""
+
+        return str(mp3_path)
+
     def _join_sequence_wavs(self, p_json: dict) -> str:
         """
-        シーケンス再生の parts/line_*.wav を1本へ繋ぐ。
+        シーケンス再生の parts/line_*.wav を1本へ繋ぎ、mp3 にして返す。
 
         merged_wav はシーケンスモードだと作られない。Discord へ音声を送るには
         1ファイルである方が扱いやすいので、ここで結合したものを作る。
+        WAV のままだと Discord の添付上限(10MB)を超えて 413 になるため、
+        最後に mp3 へ変換する。変換できなければ WAV のパスを返す。
         失敗しても本筋には影響しないよう、空文字を返すだけにする。
         """
         import wave
@@ -499,23 +566,44 @@ class PipelineWorker(QObject):
                 return ""
 
             out = run_dir / "joined_for_external.wav"
-            if out.exists():
+            mp3 = run_dir / "joined_for_external.mp3"
+
+            # 変換済みが残っていればそれをそのまま使う。
+            if mp3.exists():
+                return str(mp3)
+
+            if not out.exists():
+                with wave.open(str(parts[0]), "rb") as first:
+                    params = first.getparams()
+
+                with wave.open(str(out), "wb") as dst:
+                    dst.setparams(params)
+                    for part in parts:
+                        try:
+                            with wave.open(str(part), "rb") as src:
+                                dst.writeframes(src.readframes(src.getnframes()))
+                        except Exception:
+                            continue
+
+                self.log.emit(f"[ask] 音声を結合した {len(parts)}本 -> {out.name}")
+
+            encoded = self._encode_wav_to_mp3(out)
+            if not encoded:
                 return str(out)
 
-            with wave.open(str(parts[0]), "rb") as first:
-                params = first.getparams()
+            wav_bytes = out.stat().st_size
+            mp3_bytes = Path(encoded).stat().st_size
+            try:
+                # 中間の WAV は用済み。parts/line_*.wav はゲーム側の再生に使うので触らない。
+                out.unlink()
+            except Exception:
+                pass
 
-            with wave.open(str(out), "wb") as dst:
-                dst.setparams(params)
-                for part in parts:
-                    try:
-                        with wave.open(str(part), "rb") as src:
-                            dst.writeframes(src.readframes(src.getnframes()))
-                    except Exception:
-                        continue
-
-            self.log.emit(f"[ask] 音声を結合した {len(parts)}本 -> {out.name}")
-            return str(out)
+            self.log.emit(
+                f"[ask] mp3へ変換 {wav_bytes // 1024}KB -> {mp3_bytes // 1024}KB "
+                f"({Path(encoded).name})"
+            )
+            return encoded
         except Exception as exc:
             self.log.emit(f"[ask] 音声の結合に失敗: {exc}")
             return ""
