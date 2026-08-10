@@ -1248,6 +1248,16 @@ class MainWindow(QMainWindow):
         profile_widget = QWidget(); profile_widget.setLayout(profile_row)
         form.addRow("Botプロフィール", profile_widget)
 
+        banner_row = QHBoxLayout()
+        self.discord_banner_path_edit = QLineEdit()
+        self.discord_banner_path_edit.setPlaceholderText("PNG / JPEG / GIF")
+        self.discord_banner_browse_btn = QPushButton("画像を選択")
+        self.discord_banner_browse_btn.clicked.connect(self._discord_select_banner)
+        banner_row.addWidget(self.discord_banner_path_edit, 1)
+        banner_row.addWidget(self.discord_banner_browse_btn)
+        banner_widget = QWidget(); banner_widget.setLayout(banner_row)
+        form.addRow("プロフィールバナー", banner_widget)
+
         self.discord_apply_profile_btn = QPushButton("Botプロフィールを反映")
         self.discord_apply_profile_btn.clicked.connect(self._discord_apply_profile)
         form.addRow("", self.discord_apply_profile_btn)
@@ -1371,6 +1381,7 @@ class MainWindow(QMainWindow):
         self.discord_env_file_edit.setText(str(raw.get("env_file", "")))
         self.discord_bot_name_edit.setText(str(profile.get("username", "")))
         self.discord_avatar_path_edit.setText(str(profile.get("avatar_path", "")))
+        self.discord_banner_path_edit.setText(str(profile.get("banner_path", "")))
         listen = int(pipe.get("listen_channel_id", 0) or 0) or int(rep.get("text_channel_id", 0) or 0)
         self.discord_listen_channel_edit.setText(str(listen or ""))
         self.discord_reply_channel_edit.setText(str(int(rep.get("text_channel_id", 0) or 0) or ""))
@@ -1399,6 +1410,7 @@ class MainWindow(QMainWindow):
         raw["env_file"] = self.discord_env_file_edit.text().strip()
         raw["profile"]["username"] = self.discord_bot_name_edit.text().strip()
         raw["profile"]["avatar_path"] = self.discord_avatar_path_edit.text().strip()
+        raw["profile"]["banner_path"] = self.discord_banner_path_edit.text().strip()
 
         def _int(text: str) -> int:
             try:
@@ -1449,6 +1461,18 @@ class MainWindow(QMainWindow):
         if path:
             self.discord_avatar_path_edit.setText(path)
 
+    def _discord_select_banner(self) -> None:
+        current = self.discord_banner_path_edit.text().strip()
+        start_dir = str(Path(current).parent) if current else str(PROJECT_ROOT)
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Discord Botのプロフィールバナーを選択",
+            start_dir,
+            "画像 (*.png *.jpg *.jpeg *.gif)",
+        )
+        if path:
+            self.discord_banner_path_edit.setText(path)
+
     def _discord_apply_profile(self) -> None:
         if self._discord_profile_worker is not None and self._discord_profile_worker.isRunning():
             self.discord_status_label.setText("Botプロフィールを反映中")
@@ -1459,6 +1483,7 @@ class MainWindow(QMainWindow):
         env_file = self.discord_env_file_edit.text().strip()
         username = self.discord_bot_name_edit.text().strip()
         avatar_path = self.discord_avatar_path_edit.text().strip()
+        banner_path = self.discord_banner_path_edit.text().strip()
 
         self.discord_apply_profile_btn.setEnabled(False)
         self.discord_status_label.setText("Botプロフィールを反映中…")
@@ -1468,6 +1493,7 @@ class MainWindow(QMainWindow):
                 env_file=env_file,
                 username=username,
                 avatar_path=avatar_path,
+                banner_path=banner_path,
             )
         )
         self._discord_profile_worker.result_ready.connect(self._discord_profile_applied)

@@ -33,18 +33,18 @@ def _load_env_value(env_file: str, key: str) -> str:
     return ""
 
 
-def _avatar_data_uri(image_path: str) -> str:
+def _image_data_uri(image_path: str, label: str) -> str:
     path = Path(image_path)
     if not path.is_file():
-        raise ValueError(f"アイコン画像が見つかりません: {path}")
+        raise ValueError(f"{label}画像が見つかりません: {path}")
     data = path.read_bytes()
     if not data:
-        raise ValueError("アイコン画像が空です")
+        raise ValueError(f"{label}画像が空です")
     if len(data) > MAX_AVATAR_BYTES:
-        raise ValueError("アイコン画像は10MB以下にしてください")
+        raise ValueError(f"{label}画像は10MB以下にしてください")
     mime = mimetypes.guess_type(path.name)[0] or ""
     if mime not in {"image/png", "image/jpeg", "image/gif"}:
-        raise ValueError("アイコン画像はPNG、JPEG、GIFのいずれかを指定してください")
+        raise ValueError(f"{label}画像はPNG、JPEG、GIFのいずれかを指定してください")
     encoded = base64.b64encode(data).decode("ascii")
     return f"data:{mime};base64,{encoded}"
 
@@ -55,6 +55,7 @@ def update_bot_profile(
     env_file: str,
     username: str = "",
     avatar_path: str = "",
+    banner_path: str = "",
     timeout_sec: float = 30.0,
 ) -> dict[str, Any]:
     """Bot名・アイコンの指定された方だけを Discord へ反映する。"""
@@ -66,14 +67,17 @@ def update_bot_profile(
     payload: dict[str, str] = {}
     clean_name = username.strip()
     clean_avatar = avatar_path.strip()
+    clean_banner = banner_path.strip()
     if clean_name:
         if not 2 <= len(clean_name) <= 32:
             raise ValueError("Bot名は2～32文字で指定してください")
         payload["username"] = clean_name
     if clean_avatar:
-        payload["avatar"] = _avatar_data_uri(clean_avatar)
+        payload["avatar"] = _image_data_uri(clean_avatar, "アイコン")
+    if clean_banner:
+        payload["banner"] = _image_data_uri(clean_banner, "バナー")
     if not payload:
-        raise ValueError("Bot名またはアイコン画像を指定してください")
+        raise ValueError("Bot名、アイコン画像、バナー画像のいずれかを指定してください")
 
     request = urllib.request.Request(
         DISCORD_CURRENT_USER_URL,

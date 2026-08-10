@@ -116,6 +116,7 @@ class BotProfileConfig:
 
     username: str = ""
     avatar_path: str = ""
+    banner_path: str = ""
 
 
 @dataclass

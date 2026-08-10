@@ -3,7 +3,8 @@
   "env_file": "",
   "profile": {
     "username": "",
-    "avatar_path": ""
+    "avatar_path": "",
+    "banner_path": ""
   },
   "capture": {
     "voice_channel_id": 0,
