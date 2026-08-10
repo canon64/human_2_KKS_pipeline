@@ -23,6 +23,8 @@
     "use_temp_then_rename": true
   },
   "reply": {
+    "destination": "dm",
+    "dm_user_id": 0,
     "text_channel_id": 0,
     "message_limit": 1900,
     "max_images": 4,

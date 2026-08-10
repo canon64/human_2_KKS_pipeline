@@ -1262,6 +1262,18 @@ class MainWindow(QMainWindow):
         self.discord_apply_profile_btn.clicked.connect(self._discord_apply_profile)
         form.addRow("", self.discord_apply_profile_btn)
 
+        destination_row = QHBoxLayout()
+        self.discord_destination_combo = QComboBox()
+        self.discord_destination_combo.addItem("個人DM（推奨）", "dm")
+        self.discord_destination_combo.addItem("サーバーチャンネル", "channel")
+        self.discord_dm_user_edit = QLineEdit()
+        self.discord_dm_user_edit.setPlaceholderText("自分のDiscordユーザーID")
+        destination_row.addWidget(self.discord_destination_combo)
+        destination_row.addWidget(QLabel("ユーザーID"))
+        destination_row.addWidget(self.discord_dm_user_edit, 1)
+        destination_widget = QWidget(); destination_widget.setLayout(destination_row)
+        form.addRow("送受信先", destination_widget)
+
         # --- チャンネル ---
         ch_row = QHBoxLayout()
         self.discord_listen_channel_edit = QLineEdit()
@@ -1382,6 +1394,10 @@ class MainWindow(QMainWindow):
         self.discord_bot_name_edit.setText(str(profile.get("username", "")))
         self.discord_avatar_path_edit.setText(str(profile.get("avatar_path", "")))
         self.discord_banner_path_edit.setText(str(profile.get("banner_path", "")))
+        destination = str(rep.get("destination", "channel"))
+        destination_index = self.discord_destination_combo.findData(destination)
+        self.discord_destination_combo.setCurrentIndex(destination_index if destination_index >= 0 else 1)
+        self.discord_dm_user_edit.setText(str(int(rep.get("dm_user_id", 0) or 0) or ""))
         listen = int(pipe.get("listen_channel_id", 0) or 0) or int(rep.get("text_channel_id", 0) or 0)
         self.discord_listen_channel_edit.setText(str(listen or ""))
         self.discord_reply_channel_edit.setText(str(int(rep.get("text_channel_id", 0) or 0) or ""))
@@ -1438,6 +1454,8 @@ class MainWindow(QMainWindow):
         raw["pipeline"]["allowed_guild_ids"] = guild_ids
 
         raw["reply"]["text_channel_id"] = reply
+        raw["reply"]["destination"] = str(self.discord_destination_combo.currentData() or "dm")
+        raw["reply"]["dm_user_id"] = _int(self.discord_dm_user_edit.text())
         raw["reply"]["message_limit"] = int(self.discord_msg_limit_spin.value())
         raw["reply"]["max_images"] = int(self.discord_max_images_spin.value())
         raw["reply"].setdefault("play_voice_in_call", True)
@@ -1542,6 +1560,14 @@ class MainWindow(QMainWindow):
         if getattr(self, "_discord_proc", None) is not None and self._discord_proc.poll() is None:
             self.discord_status_label.setText("既に動いている")
             return
+
+        if self.discord_destination_combo.currentData() == "dm":
+            user_id = self.discord_dm_user_edit.text().strip()
+            if not user_id.isdigit() or int(user_id) <= 0:
+                message = "個人DMには自分のDiscordユーザーIDが必要"
+                self.discord_status_label.setText(message)
+                self._append_log(f"[discord] {message}")
+                return
 
         self._discord_save_config()
         root = Path(__file__).resolve().parents[1]

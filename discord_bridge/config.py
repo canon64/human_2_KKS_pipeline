@@ -63,6 +63,12 @@ class WavOutputConfig:
 class ReplyConfig:
     """返信の送り先。"""
 
+    # "dm" なら dm_user_id の個人DM、"channel" なら text_channel_id。
+    destination: str = "channel"
+
+    # DMで会話するDiscordユーザーID。0ならDMを受け付けない。
+    dm_user_id: int = 0
+
     # テキストと画像を送るチャンネル。0 なら送らない。
     text_channel_id: int = 0
 

@@ -192,24 +192,15 @@ class VoiceBridge:
             return
 
         async def _run() -> None:
-            ch_id = self.config.reply.text_channel_id
-            if ch_id and (plan.text_chunks or plan.image_files):
-                channel = await self._resolve_channel(client, ch_id)
-                if channel is None:
-                    self.log(f"[reply] テキストチャンネルが取れない: {ch_id}")
-                else:
-                    import discord  # 遅延 import
-
-                    for chunk in plan.text_chunks:
-                        await channel.send(chunk)
-                    if plan.image_files:
-                        import io as _io
-
-                        files = [
-                            discord.File(_io.BytesIO(blob), filename=name)
-                            for name, blob in plan.image_files
-                        ]
-                        await channel.send(files=files)
+            channel = await self._resolve_reply_destination(client)
+            if channel is not None and (plan.text_chunks or plan.image_files or plan.audio_path):
+                await self._send_plan(
+                    channel,
+                    plan,
+                    send_audio_file=self.config.reply.destination == "dm",
+                )
+            elif plan.text_chunks or plan.image_files:
+                self.log("[reply] 送信先を取得できない")
 
             if plan.audio_path and self._voice_client is not None:
                 import discord  # 遅延 import
@@ -223,6 +214,26 @@ class VoiceBridge:
                     self.log(f"[reply] 通話への再生に失敗: {exc}")
 
         asyncio.run_coroutine_threadsafe(_run(), client.loop)
+
+    async def _resolve_reply_destination(self, client: Any) -> Any:
+        """設定に従って返信先のDMまたはサーバーチャンネルを返す。"""
+        if self.config.reply.destination == "dm":
+            user_id = int(self.config.reply.dm_user_id or 0)
+            if not user_id:
+                return None
+            try:
+                user = client.get_user(user_id)
+                if user is None:
+                    user = await client.fetch_user(user_id)
+                return await user.create_dm()
+            except Exception as exc:
+                self.log(f"[reply] DMを開けない user={user_id}: {exc}")
+                return None
+
+        ch_id = self.config.reply.text_channel_id
+        if ch_id:
+            return await self._resolve_channel(client, ch_id)
+        return None
 
     # ------------------------------------------------------------------
     def start(self) -> bool:
@@ -537,16 +548,24 @@ class VoiceBridge:
         if client.user is not None and message.author.id == client.user.id:
             return
 
-        # 許可したサーバー以外では動かない。設定を間違えても他所へ流れない。
-        allowed = getattr(link, "allowed_guild_ids", None) or []
-        if allowed:
-            gid = getattr(getattr(message, "guild", None), "id", 0)
-            if gid not in allowed:
+        if self.config.reply.destination == "dm":
+            # DMモードでは、指定した本人との個人DM以外を一切処理しない。
+            target_user_id = int(self.config.reply.dm_user_id or 0)
+            if not target_user_id or message.author.id != target_user_id:
                 return
+            if getattr(message, "guild", None) is not None:
+                return
+        else:
+            # 許可したサーバー以外では動かない。設定を間違えても他所へ流れない。
+            allowed = getattr(link, "allowed_guild_ids", None) or []
+            if allowed:
+                gid = getattr(getattr(message, "guild", None), "id", 0)
+                if gid not in allowed:
+                    return
 
-        listen_id = link.listen_channel_id or self.config.reply.text_channel_id
-        if listen_id and message.channel.id != listen_id:
-            return
+            listen_id = link.listen_channel_id or self.config.reply.text_channel_id
+            if listen_id and message.channel.id != listen_id:
+                return
 
         mid = getattr(message, "id", 0)
         if mid:
@@ -617,7 +636,13 @@ class VoiceBridge:
         )
         await self._send_plan(message.channel, plan)
 
-    async def _send_plan(self, channel: Any, plan: ReplyPlan) -> None:
+    async def _send_plan(
+        self,
+        channel: Any,
+        plan: ReplyPlan,
+        *,
+        send_audio_file: bool = True,
+    ) -> None:
         import io as _io
 
         import discord
@@ -633,7 +658,7 @@ class VoiceBridge:
             await channel.send(files=files)
 
         # TTS の音声をファイルとして送る。通話ではないので暗号化の制約を受けない。
-        if plan.audio_path:
+        if plan.audio_path and send_audio_file:
             from pathlib import Path as _P
 
             p = _P(plan.audio_path)
