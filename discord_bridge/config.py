@@ -13,9 +13,10 @@ from pathlib import Path
 
 
 def parse_discord_id(value: object) -> int:
-    """Discordのコピー文字列からSnowflake IDだけを取り出す。"""
-    match = re.search(r"(?<![0-9])[0-9]{15,25}(?![0-9])", str(value or ""))
-    return int(match.group(0)) if match else 0
+    """数字ID、<@数字>、<@!数字>だけを受け付ける。"""
+    text = str(value or "").strip()
+    match = re.fullmatch(r"(?:<@!?([0-9]{15,25})>|([0-9]{15,25}))", text)
+    return int(match.group(1) or match.group(2)) if match else 0
 
 
 @dataclass
@@ -75,9 +76,6 @@ class ReplyConfig:
 
     # DMで会話するDiscordユーザーID。0ならDMを受け付けない。
     dm_user_id: int = 0
-
-    # 数値IDが分からない場合に使うDiscordユーザー名。
-    dm_username: str = ""
 
     # テキストと画像を送るチャンネル。0 なら送らない。
     text_channel_id: int = 0

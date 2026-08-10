@@ -92,10 +92,8 @@ def preflight(cfg: BridgeConfig, log) -> bool:
     if cfg.reply.destination == "dm":
         if cfg.reply.dm_user_id:
             log(f"送受信先: 個人DM user={cfg.reply.dm_user_id}")
-        elif cfg.reply.dm_username:
-            log(f"送受信先: 個人DM username={cfg.reply.dm_username}（初回DMでIDを確認）")
         else:
-            log("DMのユーザー名またはIDが未設定 → DMを送受信できない")
+            log("dm_user_id が未設定 → DMを送受信できない")
     elif not cfg.reply.text_channel_id:
         log("text_channel_id が未設定 → テキストと画像は送らない（受信のみ）")
 

@@ -11,14 +11,16 @@ class DiscordConfigTests(unittest.TestCase):
         expected = Path(__file__).resolve().parents[1] / ".env"
         self.assertEqual(Path(BridgeConfig().env_file), expected)
 
-    def test_parses_discord_id_from_mention_and_surrounding_text(self) -> None:
+    def test_parses_discord_id_and_removes_mention_wrapper_only(self) -> None:
         expected = 123456789012345678
         self.assertEqual(parse_discord_id("<@123456789012345678>"), expected)
-        self.assertEqual(parse_discord_id("ID: 123456789012345678\u200b"), expected)
+        self.assertEqual(parse_discord_id("<@!123456789012345678>"), expected)
+        self.assertEqual(parse_discord_id("123456789012345678"), expected)
 
     def test_rejects_missing_or_short_id(self) -> None:
         self.assertEqual(parse_discord_id(""), 0)
         self.assertEqual(parse_discord_id("12345"), 0)
+        self.assertEqual(parse_discord_id("labun0741"), 0)
 
 
 if __name__ == "__main__":
