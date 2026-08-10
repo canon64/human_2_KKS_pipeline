@@ -25,6 +25,7 @@
   "reply": {
     "destination": "dm",
     "dm_user_id": 0,
+    "dm_username": "",
     "text_channel_id": 0,
     "message_limit": 1900,
     "max_images": 4,

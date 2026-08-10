@@ -76,6 +76,9 @@ class ReplyConfig:
     # DMで会話するDiscordユーザーID。0ならDMを受け付けない。
     dm_user_id: int = 0
 
+    # 数値IDが分からない場合に使うDiscordユーザー名。
+    dm_username: str = ""
+
     # テキストと画像を送るチャンネル。0 なら送らない。
     text_channel_id: int = 0
 

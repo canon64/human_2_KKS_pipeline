@@ -1263,9 +1263,9 @@ class MainWindow(QMainWindow):
         self.discord_destination_combo.addItem("個人DM（推奨）", "dm")
         self.discord_destination_combo.addItem("サーバーチャンネル", "channel")
         self.discord_dm_user_edit = QLineEdit()
-        self.discord_dm_user_edit.setPlaceholderText("自分のDiscordユーザーID")
+        self.discord_dm_user_edit.setPlaceholderText("自分のDiscordユーザー名または数字ID")
         destination_row.addWidget(self.discord_destination_combo)
-        destination_row.addWidget(QLabel("ユーザーID"))
+        destination_row.addWidget(QLabel("ユーザー名／ID"))
         destination_row.addWidget(self.discord_dm_user_edit, 1)
         destination_widget = QWidget(); destination_widget.setLayout(destination_row)
         form.addRow("送受信先", destination_widget)
@@ -1394,7 +1394,8 @@ class MainWindow(QMainWindow):
         destination_index = self.discord_destination_combo.findData(destination)
         self.discord_destination_combo.setCurrentIndex(destination_index if destination_index >= 0 else 1)
         dm_user_id = parse_discord_id(rep.get("dm_user_id", 0))
-        self.discord_dm_user_edit.setText(str(dm_user_id or ""))
+        dm_username = str(rep.get("dm_username", "") or "").strip()
+        self.discord_dm_user_edit.setText(str(dm_user_id) if dm_user_id else dm_username)
         listen = int(pipe.get("listen_channel_id", 0) or 0) or int(rep.get("text_channel_id", 0) or 0)
         self.discord_listen_channel_edit.setText(str(listen or ""))
         self.discord_reply_channel_edit.setText(str(int(rep.get("text_channel_id", 0) or 0) or ""))
@@ -1452,10 +1453,16 @@ class MainWindow(QMainWindow):
 
         raw["reply"]["text_channel_id"] = reply
         raw["reply"]["destination"] = str(self.discord_destination_combo.currentData() or "dm")
-        dm_user_id = parse_discord_id(self.discord_dm_user_edit.text())
+        dm_input = self.discord_dm_user_edit.text().strip()
+        dm_user_id = parse_discord_id(dm_input)
         raw["reply"]["dm_user_id"] = dm_user_id
         if dm_user_id:
+            raw["reply"]["dm_username"] = ""
             self.discord_dm_user_edit.setText(str(dm_user_id))
+        else:
+            dm_username = dm_input.lstrip("@").strip()
+            raw["reply"]["dm_username"] = dm_username
+            self.discord_dm_user_edit.setText(dm_username)
         raw["reply"]["message_limit"] = int(self.discord_msg_limit_spin.value())
         raw["reply"]["max_images"] = int(self.discord_max_images_spin.value())
         raw["reply"].setdefault("play_voice_in_call", True)
@@ -1562,13 +1569,13 @@ class MainWindow(QMainWindow):
             return
 
         if self.discord_destination_combo.currentData() == "dm":
-            user_id = parse_discord_id(self.discord_dm_user_edit.text())
-            if not user_id:
-                message = "個人DMには自分のDiscordユーザーIDが必要"
+            dm_recipient = self.discord_dm_user_edit.text().strip().lstrip("@").strip()
+            if not dm_recipient:
+                message = "個人DMには自分のDiscordユーザー名またはIDが必要"
                 self.discord_status_label.setText(message)
                 self._append_log(f"[discord] {message}")
                 return
-            self.discord_dm_user_edit.setText(str(user_id))
+            self.discord_dm_user_edit.setText(dm_recipient)
 
         self._discord_save_config()
         root = Path(__file__).resolve().parents[1]

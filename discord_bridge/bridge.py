@@ -128,6 +128,7 @@ class VoiceBridge:
         self._client: Any | None = None
         self._thread: threading.Thread | None = None
         self._voice_client: Any | None = None
+        self._dm_channel: Any | None = None
 
     # ------------------------------------------------------------------
     # 音声の入口。Discord の sink から呼ぶ。テスト時は直接呼んでよい。
@@ -218,6 +219,8 @@ class VoiceBridge:
     async def _resolve_reply_destination(self, client: Any) -> Any:
         """設定に従って返信先のDMまたはサーバーチャンネルを返す。"""
         if self.config.reply.destination == "dm":
+            if self._dm_channel is not None:
+                return self._dm_channel
             user_id = int(self.config.reply.dm_user_id or 0)
             if not user_id:
                 return None
@@ -551,10 +554,24 @@ class VoiceBridge:
         if self.config.reply.destination == "dm":
             # DMモードでは、指定した本人との個人DM以外を一切処理しない。
             target_user_id = int(self.config.reply.dm_user_id or 0)
-            if not target_user_id or message.author.id != target_user_id:
-                return
             if getattr(message, "guild", None) is not None:
                 return
+            target_username = str(self.config.reply.dm_username or "").strip().lstrip("@").casefold()
+            author_names = {
+                str(getattr(message.author, "name", "") or "").casefold(),
+                str(getattr(message.author, "global_name", "") or "").casefold(),
+                str(getattr(message.author, "display_name", "") or "").casefold(),
+            }
+            if target_user_id:
+                if message.author.id != target_user_id:
+                    return
+            elif not target_username or target_username not in author_names:
+                return
+            else:
+                # ユーザー名で初回DMを確認できたら、以後は実IDで固定する。
+                self.config.reply.dm_user_id = int(message.author.id)
+                self.log(f"[bridge] DM相手を確認した: {message.author} id={message.author.id}")
+            self._dm_channel = message.channel
         else:
             # 許可したサーバー以外では動かない。設定を間違えても他所へ流れない。
             allowed = getattr(link, "allowed_guild_ids", None) or []
