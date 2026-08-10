@@ -111,6 +111,14 @@ class PipelineLink:
 
 
 @dataclass
+class BotProfileConfig:
+    """Discord Bot の表示プロフィール。"""
+
+    username: str = ""
+    avatar_path: str = ""
+
+
+@dataclass
 class BridgeConfig:
     # Bot トークンを読む環境変数名。トークン自体はここに置かない。
     token_env: str = "DISCORD_BOT_TOKEN"
@@ -122,6 +130,7 @@ class BridgeConfig:
     wav: WavOutputConfig = field(default_factory=WavOutputConfig)
     reply: ReplyConfig = field(default_factory=ReplyConfig)
     pipeline: PipelineLink = field(default_factory=PipelineLink)
+    profile: BotProfileConfig = field(default_factory=BotProfileConfig)
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), ensure_ascii=False, indent=2)
@@ -139,6 +148,7 @@ class BridgeConfig:
             wav=WavOutputConfig(**(raw.get("wav") or {})),
             reply=ReplyConfig(**(raw.get("reply") or {})),
             pipeline=PipelineLink(**(raw.get("pipeline") or {})),
+            profile=BotProfileConfig(**(raw.get("profile") or {})),
         )
 
     def save(self, path: str | Path) -> None:

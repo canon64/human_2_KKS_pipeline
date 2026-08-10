@@ -1,6 +1,10 @@
 {
   "token_env": "DISCORD_BOT_TOKEN",
   "env_file": "",
+  "profile": {
+    "username": "",
+    "avatar_path": ""
+  },
   "capture": {
     "voice_channel_id": 0,
     "target_user_ids": [],

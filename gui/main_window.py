@@ -85,6 +85,7 @@ from controllers.settings_controller import (
     save_config as _save_config_impl,
 )
 from controllers.rtfw_lan_controller import RtfwLanController
+from discord_bridge.profile import update_bot_profile
 from core.io_utils import (
     last_json_line as _last_json_line,
     save_text as _save_text,
@@ -471,6 +472,7 @@ class MainWindow(QMainWindow):
         self._sbv2_test_last_run_dir: Optional[Path] = None
         self._sbv2_test_no_send = False
         self._sd_prompt_test_worker: Optional[_TaskWorker] = None
+        self._discord_profile_worker: Optional[_TaskWorker] = None
         self._sd_preview_window: Optional[_SdPreviewWindow] = None
 
         self._manual_history: list[str] = []
@@ -1230,6 +1232,26 @@ class MainWindow(QMainWindow):
         self.discord_env_file_edit = QLineEdit(ENV_DEFAULT_PATH)
         form.addRow(".env の場所", self.discord_env_file_edit)
 
+        profile_row = QHBoxLayout()
+        self.discord_bot_name_edit = QLineEdit()
+        self.discord_bot_name_edit.setMaxLength(32)
+        self.discord_bot_name_edit.setPlaceholderText("変更するBot名")
+        self.discord_avatar_path_edit = QLineEdit()
+        self.discord_avatar_path_edit.setPlaceholderText("PNG / JPEG / GIF")
+        self.discord_avatar_browse_btn = QPushButton("画像を選択")
+        self.discord_avatar_browse_btn.clicked.connect(self._discord_select_avatar)
+        profile_row.addWidget(QLabel("名前"))
+        profile_row.addWidget(self.discord_bot_name_edit, 1)
+        profile_row.addWidget(QLabel("アイコン"))
+        profile_row.addWidget(self.discord_avatar_path_edit, 2)
+        profile_row.addWidget(self.discord_avatar_browse_btn)
+        profile_widget = QWidget(); profile_widget.setLayout(profile_row)
+        form.addRow("Botプロフィール", profile_widget)
+
+        self.discord_apply_profile_btn = QPushButton("Botプロフィールを反映")
+        self.discord_apply_profile_btn.clicked.connect(self._discord_apply_profile)
+        form.addRow("", self.discord_apply_profile_btn)
+
         # --- チャンネル ---
         ch_row = QHBoxLayout()
         self.discord_listen_channel_edit = QLineEdit()
@@ -1343,9 +1365,12 @@ class MainWindow(QMainWindow):
         cap = raw.get("capture") or {}
         rep = raw.get("reply") or {}
         pipe = raw.get("pipeline") or {}
+        profile = raw.get("profile") or {}
 
         self.discord_token_env_edit.setText(str(raw.get("token_env", "DISCORD_BOT_TOKEN")))
         self.discord_env_file_edit.setText(str(raw.get("env_file", "")))
+        self.discord_bot_name_edit.setText(str(profile.get("username", "")))
+        self.discord_avatar_path_edit.setText(str(profile.get("avatar_path", "")))
         listen = int(pipe.get("listen_channel_id", 0) or 0) or int(rep.get("text_channel_id", 0) or 0)
         self.discord_listen_channel_edit.setText(str(listen or ""))
         self.discord_reply_channel_edit.setText(str(int(rep.get("text_channel_id", 0) or 0) or ""))
@@ -1368,9 +1393,12 @@ class MainWindow(QMainWindow):
         raw.setdefault("wav", {})
         raw.setdefault("reply", {})
         raw.setdefault("pipeline", {})
+        raw.setdefault("profile", {})
 
         raw["token_env"] = self.discord_token_env_edit.text().strip() or "DISCORD_BOT_TOKEN"
         raw["env_file"] = self.discord_env_file_edit.text().strip()
+        raw["profile"]["username"] = self.discord_bot_name_edit.text().strip()
+        raw["profile"]["avatar_path"] = self.discord_avatar_path_edit.text().strip()
 
         def _int(text: str) -> int:
             try:
@@ -1408,6 +1436,58 @@ class MainWindow(QMainWindow):
             self.discord_status_label.setText("設定を保存した")
         except Exception as exc:
             self._append_log(f"[discord] 保存に失敗: {exc}")
+
+    def _discord_select_avatar(self) -> None:
+        current = self.discord_avatar_path_edit.text().strip()
+        start_dir = str(Path(current).parent) if current else str(PROJECT_ROOT)
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Discord Botのアイコンを選択",
+            start_dir,
+            "画像 (*.png *.jpg *.jpeg *.gif)",
+        )
+        if path:
+            self.discord_avatar_path_edit.setText(path)
+
+    def _discord_apply_profile(self) -> None:
+        if self._discord_profile_worker is not None and self._discord_profile_worker.isRunning():
+            self.discord_status_label.setText("Botプロフィールを反映中")
+            return
+
+        self._discord_save_config()
+        token_env = self.discord_token_env_edit.text().strip() or "DISCORD_BOT_TOKEN"
+        env_file = self.discord_env_file_edit.text().strip()
+        username = self.discord_bot_name_edit.text().strip()
+        avatar_path = self.discord_avatar_path_edit.text().strip()
+
+        self.discord_apply_profile_btn.setEnabled(False)
+        self.discord_status_label.setText("Botプロフィールを反映中…")
+        self._discord_profile_worker = _TaskWorker(
+            lambda: update_bot_profile(
+                token_env=token_env,
+                env_file=env_file,
+                username=username,
+                avatar_path=avatar_path,
+            )
+        )
+        self._discord_profile_worker.result_ready.connect(self._discord_profile_applied)
+        self._discord_profile_worker.error_occurred.connect(self._discord_profile_failed)
+        self._discord_profile_worker.finished.connect(
+            lambda: self.discord_apply_profile_btn.setEnabled(True)
+        )
+        self._discord_profile_worker.start()
+
+    def _discord_profile_applied(self, result: object) -> None:
+        data = result if isinstance(result, dict) else {}
+        name = str(data.get("username", ""))
+        message = f"Botプロフィールを反映した: {name}" if name else "Botプロフィールを反映した"
+        self.discord_status_label.setText(message)
+        self._append_log(f"[discord] {message}")
+
+    def _discord_profile_failed(self, message: str) -> None:
+        text = f"Botプロフィールの反映に失敗: {message}"
+        self.discord_status_label.setText(text)
+        self._append_log(f"[discord] {text}")
 
     def _discord_list_channels(self) -> None:
         """別プロセスで一覧を取る。Qt のループを塞がない。"""
@@ -5691,4 +5771,3 @@ class MainWindow(QMainWindow):
 # ---------------------------------------------------------------------------
 # エントリポイント
 # ---------------------------------------------------------------------------
-
