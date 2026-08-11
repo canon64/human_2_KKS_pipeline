@@ -1710,7 +1710,8 @@ class MainWindow(QMainWindow):
             "「ベクター返答」タブのOllama接続先と ollama.exe 設定をそのまま共用します。"
             "既にそちらで使っているOllamaがあれば、別のOllamaは導入しません。\n"
             "下のボタンは、ローカルOllamaが未導入な場合だけ公式Windowsインストーラーで導入し、続けて bge-m3 を取得します。"
-            "インターネット接続と数GBの空き容量が必要です。進捗は別のコンソールに表示されます。"
+            "インターネット接続と数GBの空き容量が必要です。進捗は別のコンソールに表示されます。\n"
+            "Ollama接続先を変更した場合はKKS側の設定にも同期します。ゲーム起動中に変更した場合はKKSを再起動してください。"
         )
         ollama_help.setWordWrap(True)
         ollama_layout.addWidget(ollama_help)
@@ -1736,10 +1737,37 @@ class MainWindow(QMainWindow):
             "grok_history_ollama_endpoint": self.grok_history_ollama_endpoint_edit.text().strip(),
             "grok_history_ollama_exe": self.grok_history_ollama_exe_edit.text().strip(),
         }
+        try:
+            self._sync_pose_ollama_endpoint_to_kks(settings["grok_history_ollama_endpoint"])
+        except Exception as exc:
+            self.pose_ollama_install_btn.setEnabled(True)
+            self.pose_ollama_status_label.setText(f"KKS設定の同期に失敗: {exc}")
+            self._append_log(f"[pose] KKS側Ollama接続先の同期に失敗: {exc}")
+            return
         self._ollama_setup_worker = _TaskWorker(lambda: self._run_pose_ollama_setup(settings))
         self._ollama_setup_worker.result_ready.connect(self._on_pose_ollama_setup_done)
         self._ollama_setup_worker.error_occurred.connect(self._on_pose_ollama_setup_error)
         self._ollama_setup_worker.start()
+
+    def _sync_pose_ollama_endpoint_to_kks(self, endpoint: str) -> None:
+        value = str(endpoint or "http://127.0.0.1:11434").strip().rstrip("/")
+        kks_root_text = self.kks_root_edit.text().strip()
+        if not kks_root_text:
+            raise RuntimeError("KKSフォルダが未設定です")
+        kks_root = Path(kks_root_text).expanduser()
+        config_path = kks_root / "BepInEx" / "config" / "canon.maingame.semanticposebridge.cfg"
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        if config_path.exists():
+            text_value = config_path.read_text(encoding="utf-8-sig")
+            pattern = re.compile(r"(?m)^Ollama URL\s*=.*$")
+            if pattern.search(text_value):
+                text_value = pattern.sub("Ollama URL = " + value, text_value, count=1)
+            else:
+                text_value = text_value.rstrip() + "\n\n[10. Search]\nOllama URL = " + value + "\n"
+        else:
+            text_value = "[10. Search]\n\nOllama URL = " + value + "\n"
+        config_path.write_text(text_value, encoding="utf-8")
+        self._append_log(f"[pose] KKS側Ollama接続先を同期: {value}")
 
     def _run_pose_ollama_setup(self, settings: dict):
         from services import ollama_setup
