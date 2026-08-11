@@ -36,6 +36,8 @@ _COMMON_TAG_PAIRS = (
     ("[BEGIN]", "[END]"),
     ("$ BEGIN $", "$ END $"),
 )
+_POSE_BEGIN_TAG = "===POSE_BEGIN==="
+_POSE_END_TAG = "===POSE_END==="
 
 
 def split_tag_variants(value: str) -> list[str]:
@@ -64,6 +66,7 @@ def _tag_pairs(begin_tag: str, end_tag: str) -> list[tuple[str, str]]:
         add_pair(begin, end)
     for common_begin, common_end in _COMMON_TAG_PAIRS:
         add_pair(common_begin, common_end)
+    add_pair(_POSE_BEGIN_TAG, _POSE_END_TAG)
     return pairs
 
 
@@ -183,7 +186,40 @@ def extract_sd_prompt_block(
                 prompt_parts.append(prompt)
             source = source[: begin_match.start()].strip()
 
-    return source.strip(), "\n".join(part for part in prompt_parts if part).strip()
+    return source.strip(), ",\n".join(part for part in prompt_parts if part).strip()
+
+
+def extract_pose_prompt_block(
+    text: str,
+    begin_tag: str = _POSE_BEGIN_TAG,
+    end_tag: str = _POSE_END_TAG,
+) -> tuple[str, str]:
+    """POSEブロックだけを抽出する。SDブロックとは結合しない。"""
+    source = str(text or "")
+    parts: list[str] = []
+    begins = split_tag_variants(begin_tag) or [_POSE_BEGIN_TAG]
+    ends = split_tag_variants(end_tag) or [_POSE_END_TAG]
+    for index, begin in enumerate(begins):
+        end = ends[index] if index < len(ends) else ends[-1]
+        pattern = _build_sd_prompt_re(begin, end)
+        matches = list(pattern.finditer(source))
+        if matches:
+            parts.extend(match.group(1).strip() for match in matches if match.group(1).strip())
+            source = pattern.sub("", source).strip()
+    return source.strip(), ",\n".join(parts).strip()
+
+
+def extract_sd_and_pose_prompts(
+    text: str,
+    sd_begin_tag: str = _DEFAULT_BEGIN_TAG,
+    sd_end_tag: str = _DEFAULT_END_TAG,
+    pose_begin_tag: str = _POSE_BEGIN_TAG,
+    pose_end_tag: str = _POSE_END_TAG,
+) -> tuple[str, str, str]:
+    """会話本文、SD単体、POSE単体を分離し、SD送信用には呼出側で結合できる形を返す。"""
+    without_pose, pose_prompt = extract_pose_prompt_block(text, pose_begin_tag, pose_end_tag)
+    clean_text, sd_prompt = extract_sd_prompt_block(without_pose, sd_begin_tag, sd_end_tag)
+    return clean_text, sd_prompt, pose_prompt
 
 
 def strip_sd_prompt_blocks_for_kks(

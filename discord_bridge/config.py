@@ -86,7 +86,16 @@ class ReplyConfig:
     # 画像の添付枚数の上限。
     max_images: int = 4
 
-    # 音声を通話へ流すか。False ならテキストのみ。
+    # Stable Diffusionで生成した画像をDiscord返信へ添付する。
+    send_sd_images: bool = True
+
+    # 問い合わせに連動して新しく撮影されたポートレートを添付する。
+    send_portrait_image: bool = False
+    portrait_directory: str = ""
+    portrait_wait_sec: float = 8.0
+
+    # TTS音声ファイルをDiscord返信へ添付するか。Falseなら添付しない。
+    # 名前は旧設定との互換性のため維持する。
     play_voice_in_call: bool = True
 
 

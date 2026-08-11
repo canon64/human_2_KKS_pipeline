@@ -107,6 +107,10 @@ class AppConfig:
     sd_prompt_begin_tag: str = "[SD_PROMPT_BEGIN]"
     sd_prompt_end_tag: str = "[SD_PROMPT_END]"
     sd_prompt_send_enabled: bool = False
+    pose_prompt_send_enabled: bool = False
+    pose_capture_after_apply_enabled: bool = False
+    pose_prompt_begin_tag: str = "===POSE_BEGIN==="
+    pose_prompt_end_tag: str = "===POSE_END==="
     sd_prompt_target_host: str = "127.0.0.1"
     sd_prompt_target_port: int = 7860
     sd_prompt_endpoint: str = "/sdapi/v1/txt2img"

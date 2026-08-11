@@ -95,7 +95,7 @@ class Responder:
 
         if payload.audio_path:
             if not self.play_voice_in_call:
-                plan.skipped.append("音声は設定で通話へ流さない")
+                plan.skipped.append("音声は設定でDiscordへ送らない")
             elif not Path(payload.audio_path).exists():
                 plan.skipped.append(f"音声ファイルが無い: {payload.audio_path}")
             else:

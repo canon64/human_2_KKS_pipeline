@@ -44,7 +44,7 @@ def main() -> int:
         print()
 
     print("設定への入れ方:")
-    print("  capture.voice_channel_id … 音声を拾う Voice チャンネルの ID")
+    print("  capture.voice_channel_id … 音声を拾う Voice チャンネルの ID（現在未実装）")
     print("  reply.text_channel_id    … テキストと画像を送る Text チャンネルの ID")
     return 0
 

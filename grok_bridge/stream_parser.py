@@ -122,14 +122,23 @@ class GrokStreamParser:
     ):
         self.on_sentence = on_sentence
         self.on_sd_prompt = on_sd_prompt
-        self.begins = _split_tags(begin_tag, "[SD_PROMPT_BEGIN]")
-        self.ends = _split_tags(end_tag, "[SD_PROMPT_END]")
+        configured_begins = _split_tags(begin_tag, "[SD_PROMPT_BEGIN]")
+        configured_ends = _split_tags(end_tag, "[SD_PROMPT_END]")
+        pairs = [
+            (begin, configured_ends[index] if index < len(configured_ends) else configured_ends[-1])
+            for index, begin in enumerate(configured_begins)
+        ]
+        if not any(begin.lower() == "===pose_begin===" for begin, _ in pairs):
+            pairs.append(("===POSE_BEGIN===", "===POSE_END==="))
+        self.begins = [begin for begin, _ in pairs]
+        self.ends = [end for _, end in pairs]
         self.active_end = self.ends[0]
         self.policy = (unclosed_policy or "auto").strip().lower()
         self.logger = logger
         self.mode = "speak"
         self.consumed = 0
         self.sd_buf = ""
+        self.pending_sd_prompts: list[str] = []
 
     def _emit(self, region: str, flush_all: bool) -> int:
         sents, tail, used, starts = split_region(region)
@@ -152,6 +161,18 @@ class GrokStreamParser:
         if p and self.on_sd_prompt:
             self.on_sd_prompt(p)
 
+    def _queue_sd(self, buf: str) -> None:
+        prompt = (buf or "").strip()
+        if prompt:
+            self.pending_sd_prompts.append(prompt)
+
+    def _flush_sd(self) -> None:
+        if not self.pending_sd_prompts:
+            return
+        combined = ",\n".join(self.pending_sd_prompts).strip()
+        self.pending_sd_prompts.clear()
+        self._fire_sd(combined)
+
     def _resolve_dangling(self) -> None:
         buf = self.sd_buf.strip()
         self.sd_buf = ""
@@ -163,7 +184,7 @@ class GrokStreamParser:
         if self.logger:
             self.logger.warning("[stream] SD_END missing -> policy=%s len=%d", policy, len(buf))
         if policy == "prompt":
-            self._fire_sd(buf)
+            self._queue_sd(buf)
         elif policy == "speak":
             self._emit(buf, flush_all=True)
         # discard: 何もしない
@@ -196,7 +217,7 @@ class GrokStreamParser:
                 if q >= 0:
                     self.sd_buf += pending[:q]
                     self.consumed += q + len(self.active_end)
-                    self._fire_sd(self.sd_buf)  # ★END検知で即送信（パース時＝再生より先行）
+                    self._queue_sd(self.sd_buf)
                     self.sd_buf = ""
                     self.mode = "speak"
                     continue
@@ -210,9 +231,12 @@ class GrokStreamParser:
                 self.sd_buf += take
                 self.consumed += len(take)
                 break
+        if final:
+            self._flush_sd()
 
     def finish(self, full_text: str) -> None:
         self.feed(full_text, final=True)
         # collect中に非finalで全消費してpendingが空のまま終わった場合の取りこぼし救済
         if self.mode == "collect" and self.sd_buf.strip():
             self._resolve_dangling()
+        self._flush_sd()

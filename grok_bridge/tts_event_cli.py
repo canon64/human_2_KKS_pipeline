@@ -29,6 +29,7 @@ from .logging_utils import setup_logger
 from core.log_safety import sanitize_log_text, summarize_sd_prompt_result
 from core.sd_prompt_bridge import (
     extract_sd_prompt_block,
+    extract_pose_prompt_block,
     send_a1111_txt2img,
     strip_sd_prompt_blocks_for_kks,
 )
@@ -544,6 +545,33 @@ class _PersistentLocalPipeSender:
             pass
 
 
+def _send_semantic_pose_event(
+    pose_prompt: str,
+    *,
+    capture_after_apply: bool,
+    event_command_base: list[str] | None,
+    persistent_pipe_sender: _PersistentLocalPipeSender | None,
+    timeout: float,
+) -> tuple[bool, str, str]:
+    prompt = str(pose_prompt or "").strip()
+    if not prompt or event_command_base is None:
+        return False, "", ""
+    payload = {
+        "type": "semantic_pose",
+        "posePrompt": prompt,
+        "captureAfterApply": 1 if capture_after_apply else 0,
+        "source": "human_2_kks",
+    }
+    if persistent_pipe_sender is not None:
+        stdout, stderr = persistent_pipe_sender.send(payload)
+        return True, stdout, stderr
+    result = _run_subprocess(
+        event_command_base + ["-Json", json.dumps(payload, ensure_ascii=False, separators=(",", ":"))],
+        timeout=max(1.0, float(timeout)),
+    )
+    return result.returncode == 0, result.stdout, result.stderr
+
+
 def _send_sequence_line_event(
     *,
     event_command_base: list[str],
@@ -828,6 +856,10 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument("--remote-http", action="store_true", help="Force HTTP bridge transport mode.")
     parser.add_argument("--sd-prompt-begin-tag", default="[SD_PROMPT_BEGIN]", help="Begin marker for SD prompt block in LLM response.")
     parser.add_argument("--sd-prompt-end-tag", default="[SD_PROMPT_END]", help="End marker for SD prompt block in LLM response.")
+    parser.add_argument("--pose-prompt-send-enabled", action="store_true", help="Send extracted POSE prompt to KKS as a semantic_pose event.")
+    parser.add_argument("--pose-capture-after-apply-enabled", action="store_true", help="Capture a portrait after the semantic pose is applied.")
+    parser.add_argument("--pose-prompt-begin-tag", default="===POSE_BEGIN===", help="Begin marker for semantic pose prompt block.")
+    parser.add_argument("--pose-prompt-end-tag", default="===POSE_END===", help="End marker for semantic pose prompt block.")
     parser.add_argument("--sd-prompt-send-enabled", action="store_true", help="Send extracted Stable Diffusion prompt to a remote receiver.")
     parser.add_argument("--sd-skip-send", action="store_true", help="Skip the in-process SD txt2img call. Used when pipeline_worker handles Generate forever loop.")
     parser.add_argument("--sd-prompt-target-host", default="127.0.0.1", help="Stable Diffusion WebUI API host.")
@@ -1207,6 +1239,27 @@ def _run_streaming(args: argparse.Namespace, config, logger, base_dir: Path) -> 
     if fallback_sd_prompt:
         fire_sd(fallback_sd_prompt, source="full_fallback")
 
+    _, pose_prompt = extract_pose_prompt_block(
+        full,
+        begin_tag=getattr(args, "pose_prompt_begin_tag", "===POSE_BEGIN==="),
+        end_tag=getattr(args, "pose_prompt_end_tag", "===POSE_END==="),
+    )
+    pose_event_sent = False
+    pose_event_error = ""
+    if pose_prompt and bool(getattr(args, "pose_prompt_send_enabled", False)):
+        try:
+            pose_event_sent, _, pose_event_error = _send_semantic_pose_event(
+                pose_prompt,
+                capture_after_apply=bool(getattr(args, "pose_capture_after_apply_enabled", False)),
+                event_command_base=event_command_base,
+                persistent_pipe_sender=persistent_pipe_sender,
+                timeout=float(getattr(args, "event_send_timeout", 15.0) or 15.0),
+            )
+            logger.info("semantic_pose_send sent=%d len=%d", int(pose_event_sent), len(pose_prompt))
+        except Exception as exc:
+            pose_event_error = str(exc)
+            logger.error("semantic_pose_send failed: %s", exc)
+
     # SD送信スレッドの完了を待つ（subprocess終了で殺さない）
     join_timeout = max(1.0, float(args.sd_prompt_timeout) + 5.0)
     for th in sd_threads:
@@ -1228,6 +1281,9 @@ def _run_streaming(args: argparse.Namespace, config, logger, base_dir: Path) -> 
                 args.subtitle_translate_enabled and str(args.subtitle_translate_target or "").strip()
             ),
             "response_raw_length": len(full),
+            "pose_prompt": pose_prompt,
+            "pose_event_sent": pose_event_sent,
+            "pose_event_error": pose_event_error,
             "response_capped_length": len(response_text),
             "response_truncated": False,
             "max_response_chars": int(args.max_response_chars),
@@ -1393,6 +1449,11 @@ def main() -> int:
                 logger=logger,
             )
 
+        _, pose_prompt = extract_pose_prompt_block(
+            response_raw,
+            begin_tag=getattr(args, "pose_prompt_begin_tag", "===POSE_BEGIN==="),
+            end_tag=getattr(args, "pose_prompt_end_tag", "===POSE_END==="),
+        )
         response_without_sd, sd_prompt = extract_sd_prompt_block(
             response_raw,
             begin_tag=getattr(args, "sd_prompt_begin_tag", "[SD_PROMPT_BEGIN]"),
@@ -1690,6 +1751,22 @@ def main() -> int:
                     event_command_base.extend(["-TargetToken", args.target_token.strip()])
             if not args.remote_http and not args.target_host.strip():
                 persistent_pipe_sender = _PersistentLocalPipeSender(args.pipe_name)
+
+        pose_event_sent = False
+        pose_event_error = ""
+        if pose_prompt and bool(getattr(args, "pose_prompt_send_enabled", False)):
+            try:
+                pose_event_sent, _, pose_event_error = _send_semantic_pose_event(
+                    pose_prompt,
+                    capture_after_apply=bool(getattr(args, "pose_capture_after_apply_enabled", False)),
+                    event_command_base=event_command_base,
+                    persistent_pipe_sender=persistent_pipe_sender,
+                    timeout=float(getattr(args, "event_send_timeout", 15.0) or 15.0),
+                )
+                logger.info("semantic_pose_send sent=%d len=%d", int(pose_event_sent), len(pose_prompt))
+            except Exception as exc:
+                pose_event_error = str(exc)
+                logger.error("semantic_pose_send failed: %s", exc)
 
         sbv2_server_url = (args.sbv2_server_url or "").strip()
 
@@ -2027,6 +2104,10 @@ def main() -> int:
                 "sd_prompt_length": len(sd_prompt),
                 "sd_prompt_send_enabled": bool(args.sd_prompt_send_enabled),
                 "sd_prompt_send_result": sd_prompt_send_result,
+                "pose_prompt_detected": bool(pose_prompt),
+                "pose_prompt": pose_prompt,
+                "pose_event_sent": pose_event_sent,
+                "pose_event_error": pose_event_error,
             }
         )
         return 0

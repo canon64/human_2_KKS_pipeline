@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 import time
 from typing import Sequence
 
@@ -397,11 +398,14 @@ def _set_and_send(driver, text: str) -> bool:
 
 def send_text(driver, config: BridgeConfig, text: str, logger: logging.Logger) -> tuple[str, bool]:
     ensure_current_tab_is_grok(driver)
+    # contenteditableへsend_keysで入れるフォールバックでは改行がEnter扱いになり、
+    # 追記ファイルを行ごとに別送信してしまう。送信境界で必ず一行へ正規化する。
+    send_text_value = re.sub(r"\s*[\r\n]+\s*", " ", str(text or "")).strip()
     logger.info("baseline_capture_start")
     baseline = _latest_response_text(driver, config.selectors.response_blocks, logger)
     logger.info("baseline_response_len=%d preview=%.60s", len(baseline), baseline[:60])
 
-    result = _set_and_send(driver, text)
+    result = _set_and_send(driver, send_text_value)
     logger.info("set_and_send=%s", result)
 
     if not result:
@@ -413,7 +417,7 @@ def send_text(driver, config: BridgeConfig, text: str, logger: logging.Logger) -
             )
         except Exception as exc:
             raise RuntimeError(f"Grok input not found: {exc}") from exc
-        if not _set_input_text(driver, input_element, text):
+        if not _set_input_text(driver, input_element, send_text_value):
             reason = _guess_send_block_reason(driver)
             raise RuntimeError(f"Failed to set input text. {reason}")
         _click_send_button(driver, config, logger)

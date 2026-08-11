@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import os
 import threading
+import time
 from pathlib import Path
 from typing import Any, Callable
 
@@ -543,17 +544,37 @@ class VoiceBridge:
         import asyncio
 
         link = self.config.pipeline
+        author_id = int(getattr(getattr(message, "author", None), "id", 0) or 0)
+        channel_id = int(getattr(getattr(message, "channel", None), "id", 0) or 0)
+        guild_id = int(getattr(getattr(message, "guild", None), "id", 0) or 0)
+        author_is_bot = bool(getattr(getattr(message, "author", None), "bot", False))
+        self.log(
+            "[msg][diag] event"
+            f" author_id={author_id} bot={int(author_is_bot)}"
+            f" guild_id={guild_id} channel_id={channel_id}"
+            f" destination={self.config.reply.destination}"
+        )
         if link.ignore_bots and getattr(message.author, "bot", False):
+            self.log(f"[msg][diag] dropped reason=ignore_bot author_id={author_id}")
             return
         if client.user is not None and message.author.id == client.user.id:
+            self.log(f"[msg][diag] dropped reason=self_message author_id={author_id}")
             return
 
         if self.config.reply.destination == "dm":
             # DMモードでは、指定した本人との個人DM以外を一切処理しない。
             target_user_id = int(self.config.reply.dm_user_id or 0)
             if getattr(message, "guild", None) is not None:
+                self.log(
+                    "[msg][diag] dropped reason=dm_mode_guild_message"
+                    f" author_id={author_id} guild_id={guild_id} channel_id={channel_id}"
+                )
                 return
             if not target_user_id or message.author.id != target_user_id:
+                self.log(
+                    "[msg][diag] dropped reason=dm_user_mismatch"
+                    f" author_id={author_id} expected_user_id={target_user_id} channel_id={channel_id}"
+                )
                 return
         else:
             # 許可したサーバー以外では動かない。設定を間違えても他所へ流れない。
@@ -561,10 +582,18 @@ class VoiceBridge:
             if allowed:
                 gid = getattr(getattr(message, "guild", None), "id", 0)
                 if gid not in allowed:
+                    self.log(
+                        "[msg][diag] dropped reason=guild_not_allowed"
+                        f" author_id={author_id} guild_id={guild_id} channel_id={channel_id}"
+                    )
                     return
 
             listen_id = link.listen_channel_id or self.config.reply.text_channel_id
             if listen_id and message.channel.id != listen_id:
+                self.log(
+                    "[msg][diag] dropped reason=channel_mismatch"
+                    f" author_id={author_id} channel_id={channel_id} expected_channel_id={listen_id}"
+                )
                 return
 
         mid = getattr(message, "id", 0)
@@ -586,6 +615,7 @@ class VoiceBridge:
                 return
             text = text[len(link.command_prefix):].strip()
         if not text:
+            self.log(f"[msg][diag] dropped reason=empty_content author_id={author_id} channel_id={channel_id}")
             return
 
         # Grok の入力欄は Enter が送信になるため、改行を含むと入力が壊れる。
@@ -598,6 +628,7 @@ class VoiceBridge:
 
         _note = (" (" + str(raw_lines) + "行を1行へ)") if raw_lines > 1 else ""
         self.log("[msg] 受信 " + str(message.author) + ": " + text[:60] + _note)
+        request_started_at = time.time()
 
         # Grok と SD で数十秒かかる。待っていることが見えるようにする。
         typing_ctx = None
@@ -629,12 +660,52 @@ class VoiceBridge:
                 pass
             return
 
+        reply_images = list(result.images) if self.config.reply.send_sd_images else []
+        if self.config.reply.send_portrait_image:
+            portrait = await asyncio.to_thread(self._wait_for_new_portrait, request_started_at)
+            if portrait is not None:
+                try:
+                    max_images = max(0, int(self.config.reply.max_images))
+                    if max_images > 0 and len(reply_images) >= max_images:
+                        reply_images = reply_images[: max_images - 1]
+                    reply_images.append(portrait.read_bytes())
+                    self.log(f"[portrait] Discord返信へ追加: {portrait.name}")
+                except Exception as exc:
+                    self.log(f"[portrait] 読み込み失敗: {exc}")
+            else:
+                self.log("[portrait] 今回の問い合わせ後に新しい画像が見つからない")
+
         plan = self.responder.build(
-            ReplyPayload(text=result.text, images=result.images,
+            ReplyPayload(text=result.text, images=reply_images,
                          audio_path=result.audio_path,
                          meta={"sd_prompt": result.sd_prompt})
         )
         await self._send_plan(message.channel, plan)
+
+    def _wait_for_new_portrait(self, request_started_at: float) -> Path | None:
+        directory_text = str(self.config.reply.portrait_directory or "").strip()
+        if not directory_text:
+            return None
+        directory = Path(directory_text)
+        deadline = time.time() + max(0.0, float(self.config.reply.portrait_wait_sec or 0.0))
+        while True:
+            try:
+                candidates = [
+                    path for path in directory.glob("portrait_*.png")
+                    if path.is_file() and path.stat().st_mtime >= request_started_at - 0.5
+                ]
+                if candidates:
+                    newest = max(candidates, key=lambda path: path.stat().st_mtime)
+                    size_before = newest.stat().st_size
+                    time.sleep(0.15)
+                    if size_before > 0 and newest.stat().st_size == size_before:
+                        return newest
+            except Exception as exc:
+                self.log(f"[portrait] 検索失敗: {exc}")
+                return None
+            if time.time() >= deadline:
+                return None
+            time.sleep(0.2)
 
     async def _send_plan(
         self,

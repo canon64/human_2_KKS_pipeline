@@ -385,6 +385,10 @@ def build_config(window, *, config_file: Path, default_source_mode: str) -> AppC
         sd_prompt_begin_tag=window.sd_prompt_begin_tag_edit.text().strip() or "[SD_PROMPT_BEGIN]",
         sd_prompt_end_tag=window.sd_prompt_end_tag_edit.text().strip() or "[SD_PROMPT_END]",
         sd_prompt_send_enabled=bool(window.sd_prompt_send_chk.isChecked()),
+        pose_prompt_send_enabled=bool(window.pose_prompt_send_chk.isChecked()),
+        pose_capture_after_apply_enabled=bool(window.pose_capture_after_apply_chk.isChecked()),
+        pose_prompt_begin_tag=window.pose_prompt_begin_tag_edit.text().strip() or "===POSE_BEGIN===",
+        pose_prompt_end_tag=window.pose_prompt_end_tag_edit.text().strip() or "===POSE_END===",
         sd_prompt_target_host=window.sd_prompt_host_edit.text().strip() or "127.0.0.1",
         sd_prompt_target_port=int(window.sd_prompt_port_spin.value()),
         sd_prompt_endpoint=window.sd_prompt_endpoint_edit.text().strip() or "/sd-prompt",
@@ -575,6 +579,10 @@ def save_config(
         "sd_prompt_begin_tag": cfg.sd_prompt_begin_tag,
         "sd_prompt_end_tag": cfg.sd_prompt_end_tag,
         "sd_prompt_send_enabled": cfg.sd_prompt_send_enabled,
+        "pose_prompt_send_enabled": cfg.pose_prompt_send_enabled,
+        "pose_capture_after_apply_enabled": cfg.pose_capture_after_apply_enabled,
+        "pose_prompt_begin_tag": cfg.pose_prompt_begin_tag,
+        "pose_prompt_end_tag": cfg.pose_prompt_end_tag,
         "sd_prompt_target_host": cfg.sd_prompt_target_host,
         "sd_prompt_target_port": cfg.sd_prompt_target_port,
         "sd_prompt_endpoint": cfg.sd_prompt_endpoint,
@@ -833,6 +841,10 @@ def load_config(window, *, config_file: Path, default_source_mode: str) -> None:
         window.sd_prompt_begin_tag_edit.setText(s("sd_prompt_begin_tag", "[SD_PROMPT_BEGIN]") or "[SD_PROMPT_BEGIN]")
         window.sd_prompt_end_tag_edit.setText(s("sd_prompt_end_tag", "[SD_PROMPT_END]") or "[SD_PROMPT_END]")
         window.sd_prompt_send_chk.setChecked(b("sd_prompt_send_enabled", False))
+        window.pose_prompt_send_chk.setChecked(b("pose_prompt_send_enabled", False))
+        window.pose_capture_after_apply_chk.setChecked(b("pose_capture_after_apply_enabled", False))
+        window.pose_prompt_begin_tag_edit.setText(s("pose_prompt_begin_tag", "===POSE_BEGIN===") or "===POSE_BEGIN===")
+        window.pose_prompt_end_tag_edit.setText(s("pose_prompt_end_tag", "===POSE_END===") or "===POSE_END===")
         window.sd_prompt_host_edit.setText(sd_host_saved or window.sd_prompt_host_edit.text())
         window.sd_prompt_port_spin.setValue(sd_port_saved)
         window.sd_prompt_endpoint_edit.setText(sd_endpoint_saved or window.sd_prompt_endpoint_edit.text())

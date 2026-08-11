@@ -2359,7 +2359,13 @@ class PipelineWorker(QObject):
         p_cmd.extend([
             "--sd-prompt-begin-tag", str(self._cfg.sd_prompt_begin_tag or "[SD_PROMPT_BEGIN]"),
             "--sd-prompt-end-tag", str(self._cfg.sd_prompt_end_tag or "[SD_PROMPT_END]"),
+            "--pose-prompt-begin-tag", str(self._cfg.pose_prompt_begin_tag or "===POSE_BEGIN==="),
+            "--pose-prompt-end-tag", str(self._cfg.pose_prompt_end_tag or "===POSE_END==="),
         ])
+        if self._cfg.pose_prompt_send_enabled:
+            p_cmd.append("--pose-prompt-send-enabled")
+        if self._cfg.pose_capture_after_apply_enabled:
+            p_cmd.append("--pose-capture-after-apply-enabled")
         if self._cfg.sd_prompt_send_enabled:
             p_cmd.append("--sd-prompt-send-enabled")
             p_cmd.extend([

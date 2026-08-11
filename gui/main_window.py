@@ -472,6 +472,7 @@ class MainWindow(QMainWindow):
         self._sd_prompt_test_worker: Optional[_TaskWorker] = None
         self._discord_profile_worker: Optional[_TaskWorker] = None
         self._sd_preview_window: Optional[_SdPreviewWindow] = None
+        self._discord_proc: Optional[subprocess.Popen] = None
 
         self._manual_history: list[str] = []
         self._model_presets: list[dict] = []
@@ -519,6 +520,7 @@ class MainWindow(QMainWindow):
         self._build_keyword_append_tab()
         build_vector_response_tab(self)
         self._build_stable_diffusion_tab()
+        self._build_pose_tab()
         self._build_discord_tab()
         self._build_test_tab()
         self._build_selenium_tab()
@@ -561,18 +563,12 @@ class MainWindow(QMainWindow):
         # 手動テキスト送信（常に表示）
         manual_group = QGroupBox("手動テキスト送信")
         manual_layout = QHBoxLayout(manual_group)
-        self.manual_combo = _NoWheelComboBox()
-        self.manual_combo.setEditable(True)
-        self.manual_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.manual_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
-        self.manual_combo.setMinimumContentsLength(12)
-        # 履歴はドロップダウンで選べるようにしつつ、入力中の自動補完は無効化する
-        self.manual_combo.setCompleter(None)
-        self.manual_combo.lineEdit().setPlaceholderText("テキストを入力して送信...")
-        self.manual_combo.lineEdit().returnPressed.connect(self._send_manual)
+        self.manual_edit = QPlainTextEdit()
+        self.manual_edit.setPlaceholderText("大量テキストを貼り付け、最後に「送信」を押してください。")
+        self.manual_edit.setMinimumHeight(90)
         self.manual_btn = QPushButton("送信")
         self.manual_btn.clicked.connect(self._send_manual)
-        manual_layout.addWidget(self.manual_combo, 1)
+        manual_layout.addWidget(self.manual_edit, 1)
         manual_layout.addWidget(self.manual_btn)
         root_layout.addWidget(manual_group)
         self._reset_manual_input()
@@ -1321,6 +1317,20 @@ class MainWindow(QMainWindow):
         rep_w = QWidget(); rep_w.setLayout(rep_row)
         form.addRow("返信", rep_w)
 
+        image_reply_row = QHBoxLayout()
+        self.discord_send_sd_images_chk = QCheckBox("SD画像を送る")
+        self.discord_send_sd_images_chk.setChecked(True)
+        self.discord_send_portrait_image_chk = QCheckBox("ポートレート画像を送る")
+        self.discord_send_portrait_image_chk.setChecked(False)
+        self.discord_send_audio_chk = QCheckBox("音声を送る")
+        self.discord_send_audio_chk.setChecked(True)
+        image_reply_row.addWidget(self.discord_send_sd_images_chk)
+        image_reply_row.addWidget(self.discord_send_portrait_image_chk)
+        image_reply_row.addWidget(self.discord_send_audio_chk)
+        image_reply_row.addStretch(1)
+        image_reply_widget = QWidget(); image_reply_widget.setLayout(image_reply_row)
+        form.addRow("Discord返信内容", image_reply_widget)
+
         self.discord_timeout_spin = _NoWheelSpinBox()
         self.discord_timeout_spin.setRange(10, 600); self.discord_timeout_spin.setValue(180)
         self.discord_timeout_spin.setSuffix(" 秒")
@@ -1413,6 +1423,9 @@ class MainWindow(QMainWindow):
         self.discord_prefix_edit.setText(str(pipe.get("command_prefix", "")))
         self.discord_msg_limit_spin.setValue(int(rep.get("message_limit", 1900) or 1900))
         self.discord_max_images_spin.setValue(int(rep.get("max_images", 4) or 4))
+        self.discord_send_sd_images_chk.setChecked(bool(rep.get("send_sd_images", True)))
+        self.discord_send_portrait_image_chk.setChecked(bool(rep.get("send_portrait_image", False)))
+        self.discord_send_audio_chk.setChecked(bool(rep.get("play_voice_in_call", True)))
         self.discord_timeout_spin.setValue(int(float(pipe.get("timeout_sec", 180) or 180)))
         guilds = pipe.get("allowed_guild_ids") or []
         self.discord_guild_edit.setText(",".join(str(g) for g in guilds))
@@ -1471,7 +1484,15 @@ class MainWindow(QMainWindow):
         raw["reply"].pop("dm_username", None)
         raw["reply"]["message_limit"] = int(self.discord_msg_limit_spin.value())
         raw["reply"]["max_images"] = int(self.discord_max_images_spin.value())
-        raw["reply"].setdefault("play_voice_in_call", True)
+        raw["reply"]["send_sd_images"] = bool(self.discord_send_sd_images_chk.isChecked())
+        raw["reply"]["send_portrait_image"] = bool(self.discord_send_portrait_image_chk.isChecked())
+        kks_root_value = self.kks_root_edit.text().strip()
+        raw["reply"]["portrait_directory"] = str(
+            Path(kks_root_value)
+            / "BepInEx" / "plugins" / "canon_plugins" / "MainGamePortraitCapture" / "captures"
+        ) if kks_root_value else ""
+        raw["reply"].setdefault("portrait_wait_sec", 8.0)
+        raw["reply"]["play_voice_in_call"] = bool(self.discord_send_audio_chk.isChecked())
 
         try:
             p.write_text(json.dumps(raw, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1617,19 +1638,67 @@ class MainWindow(QMainWindow):
     def _discord_stop(self) -> None:
         proc = getattr(self, "_discord_proc", None)
         if proc is None or proc.poll() is not None:
+            self._discord_proc = None
             self.discord_status_label.setText("停止中")
             return
         try:
-            proc.terminate()
+            if os.name == "nt":
+                subprocess.run(
+                    ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                    timeout=10,
+                    check=False,
+                )
+            else:
+                proc.terminate()
             proc.wait(timeout=5)
         except Exception:
             try:
                 proc.kill()
+                proc.wait(timeout=2)
             except Exception:
                 pass
         self._discord_proc = None
         self.discord_status_label.setText("停止した")
         self._append_log("[discord] ブリッジ停止")
+
+    def _build_pose_tab(self) -> None:
+        inner = QWidget()
+        inner.setMinimumWidth(760)
+        scroll = QScrollArea()
+        scroll.setWidget(inner)
+        scroll.setWidgetResizable(True)
+        self.tabs.addTab(scroll, "ポーズ")
+
+        form = QFormLayout(inner)
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+
+        self.pose_prompt_send_chk = QCheckBox("KKSのポーズへ自動送信")
+        self.pose_prompt_send_chk.setChecked(False)
+        form.addRow("自動適用", self.pose_prompt_send_chk)
+
+        self.pose_capture_after_apply_chk = QCheckBox("ポーズ適用後に自動撮影する")
+        self.pose_capture_after_apply_chk.setChecked(False)
+        form.addRow("写真連動", self.pose_capture_after_apply_chk)
+
+        tag_row = QHBoxLayout()
+        self.pose_prompt_begin_tag_edit = QLineEdit("===POSE_BEGIN===")
+        self.pose_prompt_end_tag_edit = QLineEdit("===POSE_END===")
+        tag_row.addWidget(QLabel("開始タグ"))
+        tag_row.addWidget(self.pose_prompt_begin_tag_edit, 1)
+        tag_row.addWidget(QLabel("終了タグ"))
+        tag_row.addWidget(self.pose_prompt_end_tag_edit, 1)
+        tag_widget = QWidget()
+        tag_widget.setLayout(tag_row)
+        form.addRow("抽出タグ", tag_widget)
+
+        help_label = QLabel(
+            "Grok応答のPOSEタグ内だけをポーズ検索用テキストとしてKKSへ送る。"
+            "POSE本文は従来どおりSD本文の後にもカンマ区切りで結合される。"
+        )
+        help_label.setWordWrap(True)
+        form.addRow("", help_label)
 
     def _build_stable_diffusion_tab(self) -> None:
         inner = QWidget()
@@ -2845,7 +2914,15 @@ class MainWindow(QMainWindow):
             "--pipe-name", cfg.pipe_name,
             "--main", str(cfg.main_index),
             "--event-send-mode", "stream",
+            "--sd-prompt-begin-tag", str(cfg.sd_prompt_begin_tag or "[SD_PROMPT_BEGIN]"),
+            "--sd-prompt-end-tag", str(cfg.sd_prompt_end_tag or "[SD_PROMPT_END]"),
+            "--pose-prompt-begin-tag", str(cfg.pose_prompt_begin_tag or "===POSE_BEGIN==="),
+            "--pose-prompt-end-tag", str(cfg.pose_prompt_end_tag or "===POSE_END==="),
         ]
+        if cfg.pose_prompt_send_enabled:
+            cmd.append("--pose-prompt-send-enabled")
+        if cfg.pose_capture_after_apply_enabled:
+            cmd.append("--pose-capture-after-apply-enabled")
         sender_ps1 = PROJECT_ROOT / "send_voice_face_event.ps1"
         if sender_ps1.exists():
             cmd.extend(["--event-sender", str(sender_ps1)])
@@ -4690,6 +4767,10 @@ class MainWindow(QMainWindow):
         self.sd_slideshow_interval_spin.valueChanged.connect(self._on_any_setting_changed)
         self.sd_prompt_begin_tag_edit.textChanged.connect(self._on_any_setting_changed)
         self.sd_prompt_end_tag_edit.textChanged.connect(self._on_any_setting_changed)
+        self.pose_prompt_send_chk.toggled.connect(self._on_any_setting_changed)
+        self.pose_capture_after_apply_chk.toggled.connect(self._on_any_setting_changed)
+        self.pose_prompt_begin_tag_edit.textChanged.connect(self._on_any_setting_changed)
+        self.pose_prompt_end_tag_edit.textChanged.connect(self._on_any_setting_changed)
         self.sd_blankmap_sync_chk.toggled.connect(self._on_any_setting_changed)
         self.sd_blankmap_status_host_edit.textChanged.connect(self._on_any_setting_changed)
         self.sd_blankmap_status_port_spin.valueChanged.connect(self._on_any_setting_changed)
@@ -5787,7 +5868,7 @@ class MainWindow(QMainWindow):
         self._append_log("[info] 停止")
 
     def _send_manual(self) -> None:
-        text = self.manual_combo.currentText().strip()
+        text = self.manual_edit.toPlainText().strip()
         if not self._send_text_to_pipeline(text, "手動"):
             return
         self._reset_manual_input()
@@ -5809,24 +5890,10 @@ class MainWindow(QMainWindow):
             self._manual_history.remove(text)
         self._manual_history.insert(0, text)
         self._manual_history = self._manual_history[:50]
-        idx = self.manual_combo.findText(text)
-        if idx >= 0:
-            self.manual_combo.removeItem(idx)
-        self.manual_combo.insertItem(0, text)
-        while self.manual_combo.count() > 50:
-            self.manual_combo.removeItem(self.manual_combo.count() - 1)
         self._reset_manual_input()
 
     def _reset_manual_input(self) -> None:
-        combo = self.manual_combo
-        combo.blockSignals(True)
-        try:
-            combo.setCurrentIndex(-1)
-            line_edit = combo.lineEdit()
-            if line_edit is not None:
-                line_edit.clear()
-        finally:
-            combo.blockSignals(False)
+        self.manual_edit.clear()
 
     def _on_pipeline_error(self, stack: str) -> None:
         self._append_log("[error] パイプライン例外")
@@ -5854,6 +5921,7 @@ class MainWindow(QMainWindow):
             self._sbv2_test_last_run_dir = None
         except Exception:
             pass
+        self._discord_stop()
         self._stop_all()
         super().closeEvent(event)
 
