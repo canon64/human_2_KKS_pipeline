@@ -10,6 +10,7 @@ import threading
 import time
 import traceback
 import urllib.error
+import urllib.parse
 import urllib.request
 import wave
 from datetime import datetime
@@ -471,6 +472,8 @@ class MainWindow(QMainWindow):
         self._sbv2_test_no_send = False
         self._sd_prompt_test_worker: Optional[_TaskWorker] = None
         self._discord_profile_worker: Optional[_TaskWorker] = None
+        self._ollama_setup_worker: Optional[_TaskWorker] = None
+        self._ollama_setup_proc: Optional[subprocess.Popen] = None
         self._sd_preview_window: Optional[_SdPreviewWindow] = None
         self._discord_proc: Optional[subprocess.Popen] = None
 
@@ -1699,6 +1702,127 @@ class MainWindow(QMainWindow):
         )
         help_label.setWordWrap(True)
         form.addRow("", help_label)
+
+        ollama_group = QGroupBox("ポーズ検索用Ollama")
+        ollama_layout = QVBoxLayout(ollama_group)
+        ollama_help = QLabel(
+            "文章から近いKKSポーズを検索するには、Ollamaと埋め込みモデル bge-m3 が必要です。\n"
+            "「ベクター返答」タブのOllama接続先と ollama.exe 設定をそのまま共用します。"
+            "既にそちらで使っているOllamaがあれば、別のOllamaは導入しません。\n"
+            "下のボタンは、ローカルOllamaが未導入な場合だけ公式Windowsインストーラーで導入し、続けて bge-m3 を取得します。"
+            "インターネット接続と数GBの空き容量が必要です。進捗は別のコンソールに表示されます。"
+        )
+        ollama_help.setWordWrap(True)
+        ollama_layout.addWidget(ollama_help)
+        ollama_row = QHBoxLayout()
+        self.pose_ollama_install_btn = QPushButton("Ollamaとbge-m3を自動導入")
+        self.pose_ollama_install_btn.clicked.connect(self._install_pose_ollama)
+        self.pose_ollama_status_label = QLabel("未確認")
+        self.pose_ollama_status_label.setWordWrap(True)
+        ollama_row.addWidget(self.pose_ollama_install_btn)
+        ollama_row.addWidget(self.pose_ollama_status_label, 1)
+        ollama_layout.addLayout(ollama_row)
+        form.addRow(ollama_group)
+
+    def _install_pose_ollama(self) -> None:
+        if self._ollama_setup_worker is not None and self._ollama_setup_worker.isRunning():
+            self.pose_ollama_status_label.setText("導入処理中です")
+            return
+
+        self.pose_ollama_install_btn.setEnabled(False)
+        self.pose_ollama_status_label.setText("別コンソールで導入中...")
+        self._append_log("[pose] Ollama / bge-m3 導入開始")
+        settings = {
+            "grok_history_ollama_endpoint": self.grok_history_ollama_endpoint_edit.text().strip(),
+            "grok_history_ollama_exe": self.grok_history_ollama_exe_edit.text().strip(),
+        }
+        self._ollama_setup_worker = _TaskWorker(lambda: self._run_pose_ollama_setup(settings))
+        self._ollama_setup_worker.result_ready.connect(self._on_pose_ollama_setup_done)
+        self._ollama_setup_worker.error_occurred.connect(self._on_pose_ollama_setup_error)
+        self._ollama_setup_worker.start()
+
+    def _run_pose_ollama_setup(self, settings: dict):
+        from services import ollama_setup
+
+        endpoint = str(settings.get("grok_history_ollama_endpoint", "") or "http://127.0.0.1:11434").rstrip("/")
+        state, _ = ollama_setup.check(settings)
+        if state == "ok":
+            return "ベクター返答と同じOllamaでbge-m3を利用可能", ""
+
+        ollama_exe = ollama_setup.resolve_exe(settings) or ""
+        host = urllib.parse.urlparse(endpoint).hostname or ""
+        if not ollama_exe and host not in ("127.0.0.1", "localhost", "::1"):
+            raise RuntimeError("ベクター返答のOllama接続先が別PCです。そのPC側でbge-m3を導入してください")
+
+        def ps_literal(value: str) -> str:
+            return "'" + str(value or "").replace("'", "''") + "'"
+
+        script = (
+            "$ErrorActionPreference='Stop'; "
+            "$ollama=" + ps_literal(ollama_exe) + "; "
+            "if(-not $ollama){ "
+            "  Write-Host 'Ollama is not installed. Installing from ollama.com...'; "
+            "  Invoke-Expression (Invoke-RestMethod 'https://ollama.com/install.ps1'); "
+            "  $ollama=Join-Path $env:LOCALAPPDATA 'Programs\\Ollama\\ollama.exe'; "
+            "}; "
+            "if(-not (Test-Path -LiteralPath $ollama)){ throw 'ollama.exe was not found after installation.' }; "
+            "$env:OLLAMA_HOST=" + ps_literal(endpoint) + "; "
+            "Write-Host 'Downloading bge-m3...'; "
+            "& $ollama pull bge-m3; "
+            "if($LASTEXITCODE -ne 0){ throw ('ollama pull failed: exit=' + $LASTEXITCODE) }; "
+            "Write-Host 'Ollama and bge-m3 are ready.'"
+        )
+        creation_flags = getattr(subprocess, "CREATE_NEW_CONSOLE", 0) if os.name == "nt" else 0
+        proc = subprocess.Popen(
+            ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", script],
+            cwd=str(PROJECT_ROOT),
+            creationflags=creation_flags,
+        )
+        self._ollama_setup_proc = proc
+        try:
+            code = proc.wait()
+        finally:
+            self._ollama_setup_proc = None
+        if code != 0:
+            raise RuntimeError(f"Ollama導入処理が失敗しました (exit={code})")
+        resolved = ollama_setup.resolve_exe(settings) or str(
+            Path(os.environ.get("LOCALAPPDATA", "")) / "Programs" / "Ollama" / "ollama.exe"
+        )
+        return "ベクター返答と同じOllamaでbge-m3の導入完了", resolved
+
+    def _on_pose_ollama_setup_done(self, message) -> None:
+        text, ollama_exe = message
+        if ollama_exe and not self.grok_history_ollama_exe_edit.text().strip():
+            self.grok_history_ollama_exe_edit.setText(str(ollama_exe))
+        self.pose_ollama_install_btn.setEnabled(True)
+        self.pose_ollama_status_label.setText(str(text))
+        self._append_log(f"[pose] {text}")
+
+    def _on_pose_ollama_setup_error(self, message: str) -> None:
+        self.pose_ollama_install_btn.setEnabled(True)
+        self.pose_ollama_status_label.setText(f"失敗: {message}")
+        self._append_log(f"[pose] Ollama導入失敗: {message}")
+
+    def _stop_pose_ollama_setup(self) -> None:
+        proc = self._ollama_setup_proc
+        if proc is not None and proc.poll() is None:
+            try:
+                if os.name == "nt":
+                    subprocess.run(
+                        ["taskkill", "/PID", str(proc.pid), "/T", "/F"],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        timeout=10,
+                        check=False,
+                    )
+                else:
+                    proc.terminate()
+                proc.wait(timeout=3)
+            except Exception:
+                pass
+        self._ollama_setup_proc = None
+        if self._ollama_setup_worker is not None and self._ollama_setup_worker.isRunning():
+            self._ollama_setup_worker.wait(3000)
 
     def _build_stable_diffusion_tab(self) -> None:
         inner = QWidget()
@@ -5921,6 +6045,7 @@ class MainWindow(QMainWindow):
             self._sbv2_test_last_run_dir = None
         except Exception:
             pass
+        self._stop_pose_ollama_setup()
         self._discord_stop()
         self._stop_all()
         super().closeEvent(event)
